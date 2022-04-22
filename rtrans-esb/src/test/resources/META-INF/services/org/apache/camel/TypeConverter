@@ -1,0 +1,14 @@
+ca.bc.gov.moh.rtrans.entity.transaction.converter.getdemographics.GetDemographicsEntityToJaxbTypeConverter
+ca.bc.gov.moh.rtrans.entity.transaction.converter.getdemographics.GetDemographicsJaxbToEntityTypeConverter
+ca.bc.gov.moh.rtrans.entity.transaction.converter.getdemographics.GetDemographicsEntityToHapiTypeConverter
+ca.bc.gov.moh.rtrans.entity.transaction.converter.getdemographics.GetDemographicsHapiToEntityTypeConverter
+ca.bc.gov.moh.rtrans.entity.transaction.converter.updateaddress.UpdateAddressHapiToEntityTypeConverter
+ca.bc.gov.moh.rtrans.entity.transaction.converter.updateaddress.UpdateAddressEntityToHapiTypeConverter
+ca.bc.gov.moh.rtrans.entity.transaction.converter.HapiStringConverter
+ca.bc.gov.moh.rtrans.entity.transaction.converter.findcandidates.FindCandidatesEntityToJaxbTypeConverter
+ca.bc.gov.moh.rtrans.entity.transaction.converter.findcandidates.FindCandidatesJaxbToEntityTypeConverter
+ca.bc.gov.moh.rtrans.entity.transaction.converter.findcandidates.FindCandidatesEntityToHapiTypeConverter
+ca.bc.gov.moh.rtrans.entity.transaction.converter.findcandidates.FindCandidatesHapiToEntityTypeConverter
+ca.bc.gov.moh.rtrans.entity.transaction.converter.reviseperson.GetDemographicsResponseEntityToRevisePersonEntityConverter
+ca.bc.gov.moh.rtrans.entity.transaction.converter.reviseperson.RevisePersonEntityToJaxbTypeConverter
+ca.bc.gov.moh.rtrans.entity.transaction.converter.reviseperson.RevisePersonJaxbToEntityTypeConverter

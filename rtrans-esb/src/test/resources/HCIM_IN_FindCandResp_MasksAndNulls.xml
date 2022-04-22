@@ -1,0 +1,98 @@
+<HCIM_IN_FindCandidatesResponse xmlns="urn:hl7-org:v3" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<id extension="71de2d55-e1bf-4ebe-b70a-301f96151e05" root="2.16.840.1.113883.3.51.1.1.1"/>
+	<creationTime value="20171030112028"/>
+	<versionCode code="V3PR1"/>
+	<interactionId extension="HCIM_IN_FindCandidatesResponse" root="2.16.840.1.113883.3.51.1.1.2"/>
+	<processingCode code="P"/>
+	<processingModeCode code="T"/>
+	<acceptAckCode code="NE"/>
+	<receiver typeCode="RCV">
+		<device classCode="DEV" determinerCode="INSTANCE">
+			<id extension="PHARMRT_FAIR" root="2.16.840.1.113883.3.51.1.1.5"/>
+			<asAgent classCode="AGNT">
+				<representedOrganization classCode="ORG" determinerCode="INSTANCE">
+					<id extension="PHARMRT" root="2.16.840.1.113883.3.51.1.1.3"/>
+				</representedOrganization>
+			</asAgent>
+		</device>
+	</receiver>
+	<sender typeCode="SND">
+		<device classCode="DEV" determinerCode="INSTANCE">
+			<id extension="RAIPRSN-NM-SRCH" root="2.16.840.1.113883.3.51.1.1.4"/>
+			<asAgent classCode="AGNT">
+				<representedOrganization classCode="ORG" determinerCode="INSTANCE">
+					<id extension="BC00001000" root="2.16.840.1.113883.3.51.1.1.3"/>
+				</representedOrganization>
+			</asAgent>
+		</device>
+	</sender>
+	<controlActProcess classCode="ACCM" moodCode="EVN">
+		<subject typeCode="SUBJ">
+			<target classCode="IDENT">
+				<id assigningAuthorityName="MOH_CRS" displayable="true" extension="9798595058"/>
+				<addr use="PHYS">
+					<postalCode>V4M 9P8</postalCode>
+					<streetAddressLine>472 Brody Culs-de-sac</streetAddressLine>
+					<streetAddressLine>Apt 847</streetAddressLine>
+					<streetAddressLine>PO Box 7670</streetAddressLine>
+					<city>Tsawwassen</city>
+					<state>BC</state>
+					<country>CA</country>
+				</addr>
+				<addr use="PST">
+					<postalCode>V9J 7V7</postalCode>
+					<streetAddressLine>379 Giorgi Road</streetAddressLine>
+					<streetAddressLine>Floor 1</streetAddressLine>
+					<streetAddressLine>PO Box 9111</streetAddressLine>
+					<city>Kaslo</city>
+					<state>BC</state>
+					<country>CA</country>
+				</addr>
+				<telecom use="H" value="tel:355-526-9116"/>
+				<telecom use="WP" value="tel:323-238-7348"/>
+				<telecom use="MC" value="tel:311-293-8246"/>
+				<telecom use="H" value="mailto:LAPOINTE7204@ARCADE.COM"/>
+				<telecom use="WP" value="mailto:rhoads8999@expressway.com"/>
+				<telecom use="MC" value="mailto:mcevoy7092@dell.com"/>
+				<identifiedPerson classCode="PERSON" determinerCode="INSTANCE">
+					<id assigningAuthorityName="MOH_CRS" extension="1234567890" root="2.16.840.1.113883.3.51.1.1.6.1"/>
+					<name use="L">
+						<given>MARJORY</given>
+						<given>MERRILEE</given>
+						<given>DORCAS</given>
+						<given qualifier="CL">KATHI</given>
+						<family>RICKS</family>
+					</name>
+					<administrativeGenderCode code="F"/>
+					<birthTime nullFlavor="MSK"/>
+				</identifiedPerson>
+				<subjectOf>
+					<observationEvent>
+						<code code="SCORE"/>
+						<value value="90"/>
+					</observationEvent>
+				</subjectOf>
+			</target>
+		</subject>
+		<queryAck>
+			<queryResponseCode code="BCHCIM.FC.0.0012 | The search completed successfully."/>
+			<resultTotalQuantity value="1"/>
+		</queryAck>
+		<queryByParameterPayload>
+			<person.addr>
+				<value use="PHYS"/>
+			</person.addr>
+			<person.administrativeGender>
+				<value code="F"/>
+			</person.administrativeGender>
+			<person.birthTime>
+				<value value="19450705"/>
+			</person.birthTime>
+			<person.name>
+				<value use="L">
+					<family>Ricks</family>
+				</value>
+			</person.name>
+		</queryByParameterPayload>
+	</controlActProcess>
+</HCIM_IN_FindCandidatesResponse>
