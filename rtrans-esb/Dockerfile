@@ -12,9 +12,9 @@ COPY /target/rtrans-esb.jar /tmp
 
 #Expose is for documenting purpose. This is added for deployment support to inform the team that they will need to map this port number for access to application
 #This does not expose the port in container after image is run. While running ops team has to pass the configuration to map the port
-#For ex: docker run -p 14885:8080 <image name> . This will map the container's port 14885 to host's port 8080
+#For ex: docker run -p 4417:8080 <image name> . This will map the container's port 4417 to host's port 8080
 
-EXPOSE 14885
+EXPOSE 4417
 
 #Start HNI-ESB
 CMD ["java","-jar","rtrans-esb.jar"]
