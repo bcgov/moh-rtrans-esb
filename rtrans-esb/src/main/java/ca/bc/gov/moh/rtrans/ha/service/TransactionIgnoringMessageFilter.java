@@ -12,7 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import javax.xml.namespace.QName;
-import org.apache.camel.attachment.AttachmentMessage;;
+import org.apache.camel.attachment.AttachmentMessage;
 import org.apache.camel.component.spring.ws.SpringWebserviceConstants;
 import org.apache.camel.component.spring.ws.filter.impl.BasicMessageFilter;
 import org.springframework.stereotype.Component;
