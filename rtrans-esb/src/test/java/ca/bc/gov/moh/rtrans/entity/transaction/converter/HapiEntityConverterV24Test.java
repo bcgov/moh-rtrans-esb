@@ -5,6 +5,23 @@
  */
 package ca.bc.gov.moh.rtrans.entity.transaction.converter;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Properties;
+
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+
 import ca.bc.gov.moh.rtrans.entity.AddressAttribute;
 import ca.bc.gov.moh.rtrans.entity.AddressTypes;
 import ca.bc.gov.moh.rtrans.entity.CommunicationTypes;
@@ -22,31 +39,21 @@ import ca.bc.gov.moh.rtrans.entity.transaction.GetDemographics;
 import ca.bc.gov.moh.rtrans.service.v2.custommodel.message.R03Response;
 import ca.bc.gov.moh.rtrans.service.v2.custommodel.message.ZIA;
 import ca.uhn.hl7v2.model.v24.datatype.CX;
-import ca.uhn.hl7v2.model.v24.datatype.SAD;
-import ca.uhn.hl7v2.model.v24.datatype.XAD;
-import ca.uhn.hl7v2.model.v24.segment.MSH;
-import ca.uhn.hl7v2.model.v24.segment.PID;
-import ca.uhn.hl7v2.model.v24.datatype.ST;
-import ca.uhn.hl7v2.model.v24.datatype.IS;
-import ca.uhn.hl7v2.model.v24.datatype.ID;
-import ca.uhn.hl7v2.model.v24.datatype.HD;
 import ca.uhn.hl7v2.model.v24.datatype.DT;
-import ca.uhn.hl7v2.model.v24.datatype.TS;
-import ca.uhn.hl7v2.model.v24.datatype.TN;
+import ca.uhn.hl7v2.model.v24.datatype.FN;
+import ca.uhn.hl7v2.model.v24.datatype.HD;
+import ca.uhn.hl7v2.model.v24.datatype.ID;
+import ca.uhn.hl7v2.model.v24.datatype.IS;
 import ca.uhn.hl7v2.model.v24.datatype.NM;
+import ca.uhn.hl7v2.model.v24.datatype.SAD;
+import ca.uhn.hl7v2.model.v24.datatype.ST;
+import ca.uhn.hl7v2.model.v24.datatype.TN;
+import ca.uhn.hl7v2.model.v24.datatype.TS;
+import ca.uhn.hl7v2.model.v24.datatype.XAD;
 import ca.uhn.hl7v2.model.v24.datatype.XPN;
 import ca.uhn.hl7v2.model.v24.datatype.XTN;
-import ca.uhn.hl7v2.model.v24.datatype.FN;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.List;
-import java.util.Properties;
-import org.junit.Test;
-import static org.junit.Assert.*;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import static org.mockito.Mockito.*;
+import ca.uhn.hl7v2.model.v24.segment.MSH;
+import ca.uhn.hl7v2.model.v24.segment.PID;
 
 /**
  * 
@@ -77,6 +84,7 @@ public class HapiEntityConverterV24Test {
     private static final XTN xtn = mock(XTN.class);
     
     Properties testProperties = new Properties();
+    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy.MM.dd HH:mm:ss");
     
     @BeforeClass
     //Not super clear I admit that
@@ -172,13 +180,14 @@ public class HapiEntityConverterV24Test {
     public void testMapPIDToPerson_PID_Person() throws Exception {
         
         System.out.println("mapPIDToPerson:Valid");
+        
         Person person = new Person();
         HapiEntityConverterV24 instance = new HapiEntityConverterV24(testProperties);
         instance.mapPIDToPerson(pid, person, false);
                 
         //General
-        assertEquals("Sun May 14 00:00:00 PDT 1989",person.getBirthDate().getValue().toString());
-        assertEquals("Sun May 14 00:00:00 PDT 1989",person.getDeathDate().getValue().toString());
+        
+        assertEquals("1989.05.14 00:00:00",dateFormat.format(person.getBirthDate().getValue()));
         assertEquals(1,person.getBirthOrder().getValue());
         assertEquals(GenderValues.Female,person.getGender().getValue());
         assertEquals(0,person.getEmail().size());
@@ -255,6 +264,7 @@ public class HapiEntityConverterV24Test {
         cal.set(Calendar.MONTH,4);
         cal.set(Calendar.DAY_OF_MONTH,14);
         cal.set(Calendar.HOUR,0);
+        
         
         Person person = new Person();
         person.setGender(new GenderAttribute(GenderValues.Female));
@@ -421,7 +431,7 @@ public class HapiEntityConverterV24Test {
         assertEquals("BC000010000",message.getReceiver().get(0).getOrganization());
         assertEquals("HNCLIENT",message.getSender().getSystemName());
         assertEquals("BC01000088",message.getSender().getOrganization());
-        assertEquals("Thu Aug 16 14:05:12 PDT 2012",message.getCreationTime().toString());
+        assertEquals("2012.08.16 14:05:12",dateFormat.format(message.getCreationTime()));
         assertEquals("some.test.user",message.getAuthor().getUser().getUserId());
         
         
@@ -431,7 +441,8 @@ public class HapiEntityConverterV24Test {
         message = new GetDemographics();
         instance.mapMSHToRequestMessage(msh, message);
         //THEN
-        assertEquals("Thu Aug 16 00:00:00 PDT 2012",message.getCreationTime().toString());
+        //assertEquals("Thu Aug 16 00:00:00 PDT 2012",message.getCreationTime().toString());
+        assertEquals("2012.08.16 00:00:00",dateFormat.format(message.getCreationTime()));
         
         //GIVEN
         msh.getMsh7_DateTimeOfMessage().parse("2012081614");    
@@ -439,7 +450,8 @@ public class HapiEntityConverterV24Test {
         message = new GetDemographics();
         instance.mapMSHToRequestMessage(msh, message);
         //THEN
-        assertEquals("Thu Aug 16 14:00:00 PDT 2012",message.getCreationTime().toString());
+        //assertEquals("Thu Aug 16 14:00:00 PDT 2012",message.getCreationTime().toString());
+        assertEquals("2012.08.16 14:00:00",dateFormat.format(message.getCreationTime()));
         
         //GIVEN
         msh.getMsh7_DateTimeOfMessage().parse("201208161405");    
@@ -447,7 +459,8 @@ public class HapiEntityConverterV24Test {
         message = new GetDemographics();
         instance.mapMSHToRequestMessage(msh, message);
         //THEN
-        assertEquals("Thu Aug 16 14:05:00 PDT 2012",message.getCreationTime().toString());
+        //assertEquals("Thu Aug 16 14:05:00 PDT 2012",message.getCreationTime().toString());
+        assertEquals("2012.08.16 14:05:00",dateFormat.format(message.getCreationTime()));
         
         //GIVEN
         msh.getMsh7_DateTimeOfMessage().parse("20120816140512");    
@@ -455,7 +468,8 @@ public class HapiEntityConverterV24Test {
         message = new GetDemographics();
         instance.mapMSHToRequestMessage(msh, message);
         //THEN
-        assertEquals("Thu Aug 16 14:05:12 PDT 2012",message.getCreationTime().toString());
+        //assertEquals("Thu Aug 16 14:05:12 PDT 2012",message.getCreationTime().toString());
+        assertEquals("2012.08.16 14:05:12",dateFormat.format(message.getCreationTime()));
         
         //GIVEN
         msh.getMsh7_DateTimeOfMessage().parse("120816");    
