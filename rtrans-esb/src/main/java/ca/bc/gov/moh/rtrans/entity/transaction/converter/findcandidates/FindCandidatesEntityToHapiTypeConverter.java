@@ -172,7 +172,7 @@ public class FindCandidatesEntityToHapiTypeConverter {
             zia.getZIA15_ExtendedPersonName().getXpn7_NameTypeCode().setValue(DataTypeConverter.PERSON_NAME_TYPE_LEGAL_DECLARED);
         }
         List<AddressAttribute> addressList = person.getAddress();
-        if(addressList!=null) {
+        if(addressList!=null && !addressList.isEmpty()) {
             AddressAttribute address = addressList.get(0);
             List<String> addressLineList = address.getStreetAddressLines();
             StringBuilder sb = new StringBuilder();
