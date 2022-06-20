@@ -14,9 +14,11 @@ public class RTransMainMethod {
     public static void main(String[] args) throws Exception {
         Main main = new Main();
 
-        main.setPropertyPlaceholderLocations("classpath:application.properties,"
-                + "classpath:errorMap.properties,"
-                + "classpath:haValueMapConfig.properties");
+        main.setPropertyPlaceholderLocations(
+            "file:${env:RTRANS_HOME}/properties/application-external.properties;optional=true,"
+        	+"classpath:application.properties,"
+            + "classpath:errorMap.properties"
+            );
         main.configure().addRoutesBuilder(InboundRouteBuilder.class);
         main.configure().addRoutesBuilder(FindCandidatesRoute.class);
         main.configure().addRoutesBuilder(GetDemographicsRoute.class);
