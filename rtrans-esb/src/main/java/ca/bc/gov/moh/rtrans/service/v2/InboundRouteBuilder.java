@@ -21,9 +21,8 @@ public class InboundRouteBuilder extends RTransRouteBuilder {
     @Override
     public void configure() throws Exception {
         super.configure();
-                
-        from("netty:tcp://{{minaListenerURI}}?sync=true&allowDefaultCodec=false")                              
-                .routeId("netty4:tcp")
+        from("jetty:http://{{minaListenerURI}}/rtrans?httpMethodRestrict=POST")                              
+                .routeId("rtrans-route")
                 .process(hnSecureStripLeadingBytes)
                 .process(new Hl7v2Parser())
                 .choice()

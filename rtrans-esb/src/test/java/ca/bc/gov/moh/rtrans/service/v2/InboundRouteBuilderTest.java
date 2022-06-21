@@ -177,7 +177,7 @@ public class InboundRouteBuilderTest extends CamelTestSupport {
         context.addRoutes(new FindCandidatesRoute());
 
         //We configure the Main Route in InboundRouteBuilder     
-        AdviceWithRouteBuilder.adviceWith(context, "netty4:tcp", a -> {
+        AdviceWithRouteBuilder.adviceWith(context, "rtrans-route", a -> {
             a.replaceFromWith("direct:start"); //We replace the starting point
             a.weaveByType(ConvertBodyDefinition.class).after().to("mock:convertBody");
             a.weaveAddLast().to("mock:response"); //Last step of the main route
