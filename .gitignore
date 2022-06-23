@@ -1,4 +1,10 @@
 target/
+
+### STS ###
+.classpath
+.project
+.settings
+
 .idea/
 pom.xml.tag
 pom.xml.releaseBackup
