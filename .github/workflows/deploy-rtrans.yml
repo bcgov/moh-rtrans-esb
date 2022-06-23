@@ -124,10 +124,11 @@ jobs:
         run: |
           echo "VERSION=${{ env.VERSION_PREFIX }}${{ github.event.inputs.Branch }}_${{ github.event.inputs.Release }}"  | tee -a $GITHUB_ENV
 
+      #$(oc get istag/${{ env.IMAGE_NAME }}:${{ env.VERSION }} -o jsonpath={.image.metadata.name})
       - name: Find image
         run: |
           oc project
-          echo "IMAGE_ID=$(oc get istag/${{ env.IMAGE_NAME }}:${{ env.VERSION }} -o jsonpath={.image.metadata.name})" | tee -a $GITHUB_ENV
+          echo "IMAGE_ID=rtrans-esb:latest" | tee -a $GITHUB_ENV
 
       # 3. Validate if that is correct. If not, exit the job
       - name: Validate image
