@@ -54,10 +54,9 @@ jobs:
           echo "RELEASE_VERSION=release_1.0_${{ github.event.inputs.branch }}_${{github.run_number}}" | tee -a $GITHUB_ENV
 
       # Determine tags for OpenShift image
-      # echo "IMAGE_TAGS= ${GITHUB_SHA::12} ${{ env.RELEASE_VERSION }} ${{ github.event.inputs.OPENSHIFT_IMAGE_TAG }}  " | tee -a $GITHUB_ENV
       - name: Determine image tags
         run: |
-          echo "IMAGE_TAGS= ${GITHUB_SHA::12} ${{ github.event.inputs.OPENSHIFT_IMAGE_TAG }}  " | tee -a $GITHUB_ENV
+          echo "IMAGE_TAGS= ${GITHUB_SHA::12} ${{ env.RELEASE_VERSION }} ${{ github.event.inputs.OPENSHIFT_IMAGE_TAG }}  " | tee -a $GITHUB_ENV
 
       # Build from docker file
       - name: Build from Dockerfile
