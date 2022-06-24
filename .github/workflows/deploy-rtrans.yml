@@ -197,8 +197,8 @@ jobs:
       - name: Update image ID and commit change
         if: ${{ success() }}
         run: |
-          cd rtrans-esb-devops/overlays/${{ env.DEVOPS_DIR }}
-          kustomize edit set image "rtrans-esb-image=image-registry.openshift-image-registry.svc:5000/${{ env.OPENSHIFT_NAMESPACE }}/${{ env.IMAGE_NAME }}${{ env.DEPLOY_SUFFIX }}@${{ env.IMAGE_ID }}"
+          cd rtrans-devops/overlay/${{ env.DEVOPS_DIR }}
+          kustomize edit set image "rtrans-image=image-registry.openshift-image-registry.svc:5000/${{ env.OPENSHIFT_NAMESPACE }}/${{ env.IMAGE_NAME }}${{ env.DEPLOY_SUFFIX }}@${{ env.IMAGE_ID }}"
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git commit -am "Deploying release build: ${{ env.VERSION }} in ${{ github.event.inputs.Environment }} using deploy-rtrans-esb workflow."
