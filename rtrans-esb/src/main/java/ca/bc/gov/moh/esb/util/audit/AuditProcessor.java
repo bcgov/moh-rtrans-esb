@@ -44,7 +44,7 @@ public class AuditProcessor {
     private static final Map<String, String> persistenceUnitProperties = new HashMap<String, String>();
     private static final Properties appProperties = new Properties();
     
-    private final EntityManagerFactory emf;
+    //private final EntityManagerFactory emf;
     
     public AuditProcessor() {
         try {
@@ -56,7 +56,6 @@ public class AuditProcessor {
         persistenceUnitProperties.put("javax.persistence.jdbc.url", appProperties.getProperty(DATABASE_URL));
         persistenceUnitProperties.put("javax.persistence.jdbc.user", appProperties.getProperty(DATABASE_SCHEMA));
         persistenceUnitProperties.put("javax.persistence.jdbc.password", appProperties.getProperty(DATABASE_PASSWORD));
-        // Commenting connection to db as there is no db for rtrans
         //emf = Persistence.createEntityManagerFactory(PERSISTENCE_UNIT_RTRANS_ESB_AUDITS, persistenceUnitProperties);
     }
 
