@@ -8,7 +8,7 @@
         </encoder>
     </appender>
 
-    <root level="DEBUG">
+    <root level="INFO">
         <appender-ref ref="STDOUT" />
     </root>
   
@@ -21,11 +21,11 @@
     </logger>
   
     <logger name="org.apache.activemq">
-        <level value="ERROR" />
+        <level value="DEBUG" />
     </logger>
   
     <logger name="org.apache.camel">
-        <level value="INFO" />
+        <level value="DEBUG" />
     </logger>
     
     <logger name="org.apache.cxf">
