@@ -72,7 +72,8 @@ public abstract class RTransRouteBuilder extends RouteBuilder {
     @PropertyInject("cert.truststorepass")
     private String truststorepass;
     
-    private static final String KEY_STORE_TYPE_PKCS12 = "JKS";
+    private static final String KEY_STORE_TYPE_PKCS12 = "PKCS12";
+    private static final String TRUST_STORE_TYPE_JKS = "jks";
 
     @Override
     public void configure() throws Exception {
@@ -99,6 +100,11 @@ public abstract class RTransRouteBuilder extends RouteBuilder {
         kmp.setKeyPassword(keystoremanagerpass);
         
         // Setup trust
+        KeyStoreParameters tsp = new KeyStoreParameters();
+        tsp.setResource(truststore);
+        tsp.setPassword(truststorepass);
+        tsp.setType(TRUST_STORE_TYPE_JKS);
+
         KeyStore trustStore;
 
         InputStream trustjks = this.getClass().getClassLoader().getResourceAsStream(truststore);
@@ -110,6 +116,7 @@ public abstract class RTransRouteBuilder extends RouteBuilder {
         
         TrustManager trustManager = tmf.getTrustManagers()[0];
         TrustManagersParameters tmp = new TrustManagersParameters();
+        tmp.setKeyStore(tsp);
         tmp.setTrustManager(trustManager);
         
         // Assign trust and key to sslContext
