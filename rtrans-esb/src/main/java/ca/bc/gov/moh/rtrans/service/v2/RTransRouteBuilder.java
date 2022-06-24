@@ -72,7 +72,7 @@ public abstract class RTransRouteBuilder extends RouteBuilder {
     @PropertyInject("cert.truststorepass")
     private String truststorepass;
     
-    private static final String KEY_STORE_TYPE_PKCS12 = "PKCS12";
+    private static final String KEY_STORE_TYPE_PKCS12 = "JKS";
 
     @Override
     public void configure() throws Exception {
