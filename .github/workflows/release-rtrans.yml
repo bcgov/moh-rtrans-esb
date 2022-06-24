@@ -40,6 +40,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       OPENSHIFT_IMAGE_SHA: ${{ steps.push-image.outputs.digest }}
+      RELEASE_VERSION: ${{ env.RELEASE_VERSION }}
 
     steps:
       # Check out the code
