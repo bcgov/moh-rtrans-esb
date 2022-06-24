@@ -56,18 +56,18 @@ public class AuditProcessor {
         persistenceUnitProperties.put("javax.persistence.jdbc.url", appProperties.getProperty(DATABASE_URL));
         persistenceUnitProperties.put("javax.persistence.jdbc.user", appProperties.getProperty(DATABASE_SCHEMA));
         persistenceUnitProperties.put("javax.persistence.jdbc.password", appProperties.getProperty(DATABASE_PASSWORD));
-        
-        emf = Persistence.createEntityManagerFactory(PERSISTENCE_UNIT_RTRANS_ESB_AUDITS, persistenceUnitProperties);
+        // Commenting connection to db as there is no db for rtrans
+        //emf = Persistence.createEntityManagerFactory(PERSISTENCE_UNIT_RTRANS_ESB_AUDITS, persistenceUnitProperties);
     }
 
     public <T> T insert(T record) {
-        EntityManager em = emf.createEntityManager();
-        EntityTransaction et = em.getTransaction();
+        // EntityManager em = emf.createEntityManager();
+        // EntityTransaction et = em.getTransaction();
 
-        et.begin();
-        em.persist(record);
-        et.commit();
-
+        // et.begin();
+        // em.persist(record);
+        // et.commit(); 
+        logger.info("Skipping entering database records ");
         return record;
     }
 
