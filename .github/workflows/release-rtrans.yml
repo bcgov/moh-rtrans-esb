@@ -12,6 +12,7 @@ env:
   OPENSHIFT_SERVER: ${{ secrets.C5839F_OPENSHIFT_SERVER }}
   OPENSHIFT_TOKEN: ${{ secrets.C5839F_OPENSHIFT_GITHUB_ACTIONS_SA_TOKEN }}
   DEFAULT_NAMESPACE: "c5839f-tools"
+  DEV_NAMESPACE: c5839f-dev
   IMAGE_REGISTRY: image-registry.apps.silver.devops.gov.bc.ca/c5839f-tools
   IMAGE_REGISTRY_USER: ${{ secrets.C5839F_OPENSHIFT_GITHUB_ACTIONS_SA_USER }}
   IMAGE_REGISTRY_PASSWORD: ${{ secrets.C5839F_OPENSHIFT_GITHUB_ACTIONS_SA_TOKEN }}
@@ -107,7 +108,7 @@ jobs:
       # Push the image to selected repository
       - name: Push Image to dev
         run: |
-          oc tag ${{env.DEFAULT_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.createRtransRelease.outputs.OPENSHIFT_IMAGE_SHA}} image-registry.apps.silver.devops.gov.bc.ca/c5839f-dev/rtrans-esb-dev:${{needs.createRtransRelease.outputs.RELEASE_VERSION}}
+          oc tag ${{env.DEFAULT_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.createHniEsbRelease.outputs.OPENSHIFT_IMAGE_SHA}} ${{env.DEV_NAMESPACE}}/${{env.IMAGE_NAME}}:${{needs.createHniEsbRelease.outputs.RELEASE_VERSION}}
 
       - name: Prepare deploy key
         uses: webfactory/ssh-agent@v0.5.3
