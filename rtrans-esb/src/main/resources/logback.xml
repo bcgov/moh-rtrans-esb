@@ -24,8 +24,8 @@
         <level value="INFO" />
     </logger>
   
-    <logger name="org.apache.camel">
-        <level value="INFO" />
+    <logger name="org.apache.camel.support">
+        <level value="DEBUG" />
     </logger>
     
     <logger name="org.apache.cxf">
