@@ -61,17 +61,7 @@
             <groupId>org.apache.camel</groupId>
             <artifactId>camel-main</artifactId>
         </dependency>
-                
-        <dependency>
-            <groupId>org.apache.camel</groupId>
-            <artifactId>camel-support</artifactId>
-        </dependency>
-            
-        <dependency>
-            <groupId>org.apache.camel</groupId>
-            <artifactId>camel-spring</artifactId>
-        </dependency>
-        
+  
         <dependency>
             <groupId>org.apache.camel</groupId>
             <artifactId>camel-spring-ws</artifactId>
@@ -81,38 +71,38 @@
                     <groupId>javax.xml.stream</groupId>
                 </exclusion>
             </exclusions>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.apache.camel</groupId>
-            <artifactId>camel-file</artifactId>
-        </dependency> 
-        
-        <dependency>
-            <groupId>org.apache.camel</groupId>
-            <artifactId>camel-http</artifactId>
-        </dependency> 
-        
-        <dependency>
-            <groupId>org.apache.camel</groupId>
-            <artifactId>camel-servlet</artifactId>
-        </dependency>       
+        </dependency>             
 
+        <!-- additional camel components -->
         <dependency>
             <groupId>org.apache.camel</groupId>
-            <artifactId>camel-bean-validator</artifactId>
+            <artifactId>camel-jetty</artifactId>
         </dependency>
-
+        <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-bean</artifactId>
+        </dependency>        
+        <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-log</artifactId>
+        </dependency>        
+        <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-direct</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.apache.camel</groupId>
             <artifactId>camel-netty</artifactId>
-        </dependency>        
-
+        </dependency> 
+        <dependency>
+            <groupId>org.apache.camel</groupId>
+            <artifactId>camel-bean-validator</artifactId>
+        </dependency>                 
         <dependency>
             <groupId>org.apache.camel</groupId>
             <artifactId>camel-jaxb</artifactId>
-        </dependency>  
-        
+        </dependency>          
+
         <!-- JAXB 2.3.0 for jdk9+ -->
         <dependency>
             <groupId>javax.xml.bind</groupId>
