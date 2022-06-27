@@ -108,7 +108,7 @@ jobs:
       # Push the image to selected repository
       - name: Push Image to dev
         run: |
-          oc tag ${{env.DEFAULT_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.createHniEsbRelease.outputs.OPENSHIFT_IMAGE_SHA}} ${{env.DEV_NAMESPACE}}/${{env.IMAGE_NAME}}:${{needs.createHniEsbRelease.outputs.RELEASE_VERSION}}
+          oc tag ${{env.DEFAULT_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.createRtransRelease.outputs.OPENSHIFT_IMAGE_SHA}} ${{env.DEV_NAMESPACE}}/${{env.IMAGE_NAME}}:${{needs.createRtransRelease.outputs.RELEASE_VERSION}}
 
       - name: Prepare deploy key
         uses: webfactory/ssh-agent@v0.5.3
