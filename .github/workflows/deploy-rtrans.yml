@@ -1,10 +1,13 @@
 # This is a deployment workflow to deploy a selected release in the selected environment
 # Steps are:
 # 1. Login to OpenShift
-# 2. Find the image digest from input parameters
-# 3. Validate if that is correct. If not, exit the job
-# 4. Push the image to selected repository
-# 5. Edit the selected Argo CD manifest file
+# 2. Compute namespace, deployment env suffix and devops directory
+# 3. Find the image digest from input parameters
+# 4. Compute the version image
+# 5. Validate if that is correct. If not, exit the job
+# 6. Perform deployment with or without approval depending on environment. The following steps are then the same for both.
+# 7. Push the image to selected repository
+# 8. Edit the selected Argo CD manifest file to update the image ID
 
 name: deploy-rtrans-esb
 
@@ -62,6 +65,7 @@ jobs:
           openshift_token: ${{ env.OPENSHIFT_TOKEN }}
           insecure_skip_tls_verify: true
           namespace: ${{ env.DEFAULT_NAMESPACE }}
+
       # 2. Find the namespace and image digest from input parameters
       - name: Compute namespace
         id: set-namespace
