@@ -3,7 +3,8 @@
 # 2. Determine tags for OpenShift image
 # 3. Build images from Dockerfile using the image name and tags
 # 4. Upload the images in image repository in tools namespace
-# 5. Tag the commit in Git with release number
+# 5. Deploy the image in Dev environment
+# 6. Tag the commit in Git with release number
 
 name: release-rtrans-esb
 # Build the image and deploy in OpenShift environment
