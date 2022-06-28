@@ -1,5 +1,6 @@
 package ca.bc.gov.moh.rtrans.service.v2;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -110,6 +111,7 @@ public abstract class RTransRouteBuilder extends RouteBuilder {
         KeyStore trustStore;
         logger.info("Starting to load trust store");
         InputStream trustjks = this.getClass().getClassLoader().getResourceAsStream(truststore);
+        logger.info("Size of input stream: "+trustjks.available());
         trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
         logger.info("Got the instance and going to load with pass: "+truststorepass);
         trustStore.load(trustjks, truststorepass.toCharArray());
