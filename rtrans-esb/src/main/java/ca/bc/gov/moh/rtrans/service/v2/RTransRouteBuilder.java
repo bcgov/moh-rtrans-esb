@@ -111,7 +111,7 @@ public abstract class RTransRouteBuilder extends RouteBuilder {
         tsp.setType(TRUST_STORE_TYPE_JKS);
 
         KeyStore trustStore;
-        logger.info("Starting to load trust store");
+        logger.info("Starting to load trust store from file");
 
 
         //InputStream trustjks = this.getClass().getClassLoader().getResourceAsStream(truststore);
