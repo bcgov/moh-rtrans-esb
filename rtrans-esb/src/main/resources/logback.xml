@@ -21,11 +21,11 @@
     </logger>
   
     <logger name="org.apache.activemq">
-        <level value="INFO" />
+        <level value="ERROR" />
     </logger>
   
     <logger name="org.apache.camel.support">
-        <level value="DEBUG" />
+        <level value="ERROR" />
     </logger>
     
     <logger name="org.apache.cxf">
@@ -33,7 +33,7 @@
     </logger>
 
     <logger name="ca.bc.gov">
-        <level value="DEBUG" />
+        <level value="INFO" />
     </logger>
 
 </configuration>
