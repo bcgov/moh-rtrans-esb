@@ -113,9 +113,12 @@ public abstract class RTransRouteBuilder extends RouteBuilder {
         KeyStore trustStore;
         logger.info("Starting to load trust store from file");
 
-
-        //InputStream trustjks = this.getClass().getClassLoader().getResourceAsStream(truststore);
-        InputStream trustjks = new FileInputStream(new File("/tmp/truststore/trust.jks"));
+        // Read from classpath for local environment
+        InputStream trustjks = this.getClass().getClassLoader().getResourceAsStream(truststore);
+        // Read from external location for servers
+        if(trustjks==null){
+            trustjks = new FileInputStream(new File(truststore));
+        }   
         logger.info("Size of input stream: "+trustjks.available());
         
         trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
