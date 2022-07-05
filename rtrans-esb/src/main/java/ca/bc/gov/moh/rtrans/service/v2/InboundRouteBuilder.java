@@ -22,10 +22,6 @@ public class InboundRouteBuilder extends RTransRouteBuilder {
     public void configure() throws Exception {
         super.configure();
                 
-        //from("netty:tcp://{{minaListenerURI}}?sync=true&allowDefaultCodec=false")                              
-        //        .routeId("netty4:tcp")
-        //from("netty:tcp://{{minaListenerURI}}?sync=true&allowDefaultCodec=false")                              
-        //.routeId("netty4:tcp")
         from("jetty:http://{{minaListenerURI}}:{{port}}/{{endpoint}}?httpMethodRestrict=POST")                              
                 .routeId("rtrans-route")
             	.log("Rtrans received a request")
