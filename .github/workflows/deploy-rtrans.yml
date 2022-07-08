@@ -193,7 +193,7 @@ jobs:
         with:
           ssh-key: ${{ secrets.GITOPS_C5839F_PRIVATE_KEY }}
           repository: ${{ secrets.GITOPS_C5839F_REPO }}
-          ref: 6602-Rtrans-Set-Up
+          ref: main
 
       - name: Set up Kustomize
         uses: imranismail/setup-kustomize@v1
@@ -257,7 +257,7 @@ jobs:
         with:
           ssh-key: ${{ secrets.GITOPS_C5839F_PRIVATE_KEY }}
           repository: ${{ secrets.GITOPS_C5839F_REPO }}
-          ref: 6602-Rtrans-Set-Up
+          ref: main
 
       - name: Set up Kustomize
         uses: imranismail/setup-kustomize@v1
