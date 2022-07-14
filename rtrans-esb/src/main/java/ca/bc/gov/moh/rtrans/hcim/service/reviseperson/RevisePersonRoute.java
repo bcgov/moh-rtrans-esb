@@ -2,7 +2,6 @@ package ca.bc.gov.moh.rtrans.hcim.service.reviseperson;
 
 import ca.bc.gov.moh.rtrans.entity.transaction.RevisePerson;
 import ca.bc.gov.moh.rtrans.entity.transaction.RevisePersonResponse;
-import ca.bc.gov.moh.rtrans.service.audit.RTransAuditProcessorConfig;
 import ca.bc.gov.moh.rtrans.service.v2.RTransRouteBuilder;
 import ca.bc.gov.moh.rtrans.service.v2.ValidGetDemoResponsePredicate;
 import ca.bc.gov.moh.rtrans.service.v2.custommodel.message.R07Response;
@@ -30,24 +29,24 @@ public class RevisePersonRoute extends RTransRouteBuilder {
 
         from("direct:revisePerson")
                 .routeId("direct:revisePerson")
-                .process(new RTransAuditProcessorConfig(START, INFO))
-                .process(AUDIT_PROCESSOR)
+                //.process(new RTransAuditProcessorConfig(START, INFO))
+                //.process(AUDIT_PROCESSOR)
                 .choice()
                     .when(validGetDemoResponsePredicate)
                         .convertBodyTo(RevisePerson.class)
                         .convertBodyTo(HCIMINPersonRevised.class)
                         .marshal(jaxb)
-                        .process(new RTransAuditProcessorConfig(HCIM_IN, INFO))
-                        .process(AUDIT_PROCESSOR)
+                        //.process(new RTransAuditProcessorConfig(HCIM_IN, INFO))
+                        //.process(AUDIT_PROCESSOR)
                         .process(FILEDROP_HCIM_IN)
                         .toD(esbHCIMRevisePersonEndpoint + "&sslContextParameters=#sslParameters").id(NODE_HCIM_REVISE_PERSON_ENDPOINT)
-                        .process(new RTransAuditProcessorConfig(HCIM_OUT, INFO))
-                        .process(AUDIT_PROCESSOR)
+                        //.process(new RTransAuditProcessorConfig(HCIM_OUT, INFO))
+                        //.process(AUDIT_PROCESSOR)
                         .process(FILEDROP_HCIM_OUT)
                         .unmarshal(jaxb)
                         .convertBodyTo(RevisePersonResponse.class)
-                        .process(new RTransAuditProcessorConfig(PROCESS_RESPONSE, INFO))
-                        .process(AUDIT_PROCESSOR)
+                        //.process(new RTransAuditProcessorConfig(PROCESS_RESPONSE, INFO))
+                        //.process(AUDIT_PROCESSOR)
                         .convertBodyTo(R07Response.class)
                     .otherwise()
                         .convertBodyTo(R07ResponseInvalid.class);
