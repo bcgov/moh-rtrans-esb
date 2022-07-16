@@ -2,7 +2,6 @@ package ca.bc.gov.moh.rtrans.service.v2;
 
 import ca.bc.gov.moh.rtrans.entity.transaction.FindCandidates;
 import ca.bc.gov.moh.rtrans.entity.transaction.GetDemographics;
-import ca.bc.gov.moh.rtrans.service.audit.RTransAuditProcessorConfig;
 import ca.bc.gov.moh.rtrans.service.v2.custommodel.message.R03Response;
 import ca.bc.gov.moh.rtrans.service.v2.exception.UnhandledHl7v2MessageException;
 import io.netty.buffer.ByteBuf;
@@ -22,8 +21,7 @@ public class InboundRouteBuilder extends RTransRouteBuilder {
                 
         from("jetty:http://{{minaListenerURI}}:{{port}}/{{endpoint}}?httpMethodRestrict=POST")                              
                 .routeId("rtrans-route")
-            	.log("Rtrans received a request")
-                .process(hnSecureStripLeadingBytes)
+            	.process(hnSecureStripLeadingBytes)
                 .process(new Hl7v2Parser())
                 .choice()
                     .when(findCandidatesPredicate)
