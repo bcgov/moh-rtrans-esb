@@ -66,7 +66,6 @@ public class AuditProcessor {
         et.begin();
         em.persist(record);
         et.commit(); 
-        logger.info("Skipping entering database records ");
         return record;
     }
 
