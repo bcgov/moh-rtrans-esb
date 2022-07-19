@@ -1,7 +1,7 @@
 package ca.bc.gov.moh.rtrans.service.v2;
 
-import ca.bc.gov.moh.rtrans.service.audit.RTransAuditProcessor;
-import ca.bc.gov.moh.rtrans.service.audit.RTransFileDropProcessor;
+import java.io.BufferedInputStream;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -10,11 +10,11 @@ import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
-import java.security.cert.CertificateFactory;
-import java.security.cert.X509Certificate;
 import java.util.Properties;
+
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+
 import org.apache.camel.CamelContext;
 import org.apache.camel.Processor;
 import org.apache.camel.PropertyInject;
@@ -24,6 +24,10 @@ import org.apache.camel.support.jsse.KeyManagersParameters;
 import org.apache.camel.support.jsse.KeyStoreParameters;
 import org.apache.camel.support.jsse.SSLContextParameters;
 import org.apache.camel.support.jsse.TrustManagersParameters;
+import org.slf4j.LoggerFactory;
+
+import ca.bc.gov.moh.rtrans.service.audit.RTransAuditProcessor;
+import ca.bc.gov.moh.rtrans.service.audit.RTransFileDropProcessor;
 
 /**
  *
@@ -73,6 +77,8 @@ public abstract class RTransRouteBuilder extends RouteBuilder {
     private String truststorepass;
     
     private static final String KEY_STORE_TYPE_PKCS12 = "PKCS12";
+    private static final String TRUST_STORE_TYPE_JKS = "jks";
+    private static final org.slf4j.Logger logger = LoggerFactory.getLogger(RTransRouteBuilder.class);
 
     @Override
     public void configure() throws Exception {
@@ -99,18 +105,33 @@ public abstract class RTransRouteBuilder extends RouteBuilder {
         kmp.setKeyPassword(keystoremanagerpass);
         
         // Setup trust
-        KeyStore trustStore;
+        KeyStoreParameters tsp = new KeyStoreParameters();
+        tsp.setResource(truststore);
+        tsp.setPassword(truststorepass);
+        tsp.setType(TRUST_STORE_TYPE_JKS);
 
+        KeyStore trustStore;
+        logger.info("Loading truststore from location: "+truststore);
+        // Read from classpath for local environment
         InputStream trustjks = this.getClass().getClassLoader().getResourceAsStream(truststore);
+
+        // Read from external location for servers
+        if(trustjks==null){
+            logger.info("Loading truststore from external location. ");
+            trustjks = new FileInputStream(new File(truststore));
+        }   
+        
         trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
         trustStore.load(trustjks, truststorepass.toCharArray());
-  
+        
         TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
         tmf.init(trustStore);
         
         TrustManager trustManager = tmf.getTrustManagers()[0];
         TrustManagersParameters tmp = new TrustManagersParameters();
+        tmp.setKeyStore(tsp);
         tmp.setTrustManager(trustManager);
+        logger.info("Setting trust manager complete");
         
         // Assign trust and key to sslContext
         SSLContextParameters sslContextParameters = new SSLContextParameters();

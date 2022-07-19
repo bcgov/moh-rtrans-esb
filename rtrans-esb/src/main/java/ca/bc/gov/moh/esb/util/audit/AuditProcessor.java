@@ -56,7 +56,6 @@ public class AuditProcessor {
         persistenceUnitProperties.put("javax.persistence.jdbc.url", appProperties.getProperty(DATABASE_URL));
         persistenceUnitProperties.put("javax.persistence.jdbc.user", appProperties.getProperty(DATABASE_SCHEMA));
         persistenceUnitProperties.put("javax.persistence.jdbc.password", appProperties.getProperty(DATABASE_PASSWORD));
-        
         emf = Persistence.createEntityManagerFactory(PERSISTENCE_UNIT_RTRANS_ESB_AUDITS, persistenceUnitProperties);
     }
 
@@ -66,8 +65,7 @@ public class AuditProcessor {
 
         et.begin();
         em.persist(record);
-        et.commit();
-
+        et.commit(); 
         return record;
     }
 

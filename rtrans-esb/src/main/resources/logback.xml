@@ -24,11 +24,16 @@
         <level value="ERROR" />
     </logger>
   
-    <logger name="org.apache.camel">
-        <level value="INFO" />
+    <logger name="org.apache.camel.support">
+        <level value="ERROR" />
     </logger>
     
     <logger name="org.apache.cxf">
         <level value="ERROR" />
     </logger>
+
+    <logger name="ca.bc.gov">
+        <level value="INFO" />
+    </logger>
+
 </configuration>
