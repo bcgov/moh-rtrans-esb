@@ -14,11 +14,14 @@
         <camel-maven-plugin-version>3.14.1</camel-maven-plugin-version>
         <camel-component-plugin-version>3.14.1</camel-component-plugin-version>
         <cxf-version>3.1.3</cxf-version>
+        <json-smart-version>2.4.2</json-smart-version>
         <eclipse-persistence-version>2.7.10</eclipse-persistence-version>
         <maven-compiler-plugin-version>3.8.1</maven-compiler-plugin-version>
         <maven-resources-plugin-version>3.1.0</maven-resources-plugin-version>
         <maven-shade-plugin-version>3.2.1</maven-shade-plugin-version>
         <postgresql-version>42.3.3</postgresql-version>
+        <git-commit></git-commit>
+        <impl-version>${project.version}-${BRANCH_NAME}-${BUILD_NUMBER}</impl-version>
         <spring-version>4.3.7.RELEASE</spring-version>
     </properties>
     
@@ -133,6 +136,13 @@
             <version>1.5.1</version>
         </dependency>
         
+        <!-- https://mvnrepository.com/artifact/net.minidev/json-smart -->
+		<dependency>
+		    <groupId>net.minidev</groupId>
+		    <artifactId>json-smart</artifactId>
+		    <version>${json-smart-version}</version>
+		</dependency>
+
         <!-- persistence -->
         <dependency>
             <groupId>org.eclipse.persistence</groupId>
@@ -276,6 +286,11 @@
                             <transformers>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
                                     <mainClass>ca.bc.gov.moh.rtrans.RTransMainMethod</mainClass>
+                                    <manifestEntries>
+										<Name>ca/bc/gov/moh/rtrans</Name>
+										<Implementation-Version>${impl-version}</Implementation-Version>	
+                  						<Git-Commit>${git-commit}</Git-Commit>
+                                    </manifestEntries>
                                 </transformer>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.AppendingTransformer">
                                     <resource>META-INF/services/org/apache/camel/TypeConverterLoader</resource>
