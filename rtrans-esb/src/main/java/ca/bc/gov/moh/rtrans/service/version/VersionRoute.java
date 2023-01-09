@@ -3,6 +3,11 @@ package ca.bc.gov.moh.rtrans.service.version;
 import org.apache.camel.Exchange;
 import org.apache.camel.builder.RouteBuilder;
 
+/**
+ * VersionRoute class is added to provide the version information of deployed artifacts
+ * This information can be retrieved from URL: http://<hostname>:<port>/version
+ * 
+ */
 public class VersionRoute extends RouteBuilder {
 
 	@Override
