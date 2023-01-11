@@ -2,6 +2,7 @@ package ca.bc.gov.moh.rtrans;
 
 import org.apache.camel.main.Main;
 import ca.bc.gov.moh.rtrans.service.v2.InboundRouteBuilder;
+import ca.bc.gov.moh.rtrans.service.version.VersionRoute;
 import ca.bc.gov.moh.rtrans.hcim.service.findcandidates.FindCandidatesRoute;
 import ca.bc.gov.moh.rtrans.hcim.service.getdemographics.GetDemographicsRoute;
 import ca.bc.gov.moh.rtrans.hcim.service.reviseperson.RevisePersonRoute;
@@ -22,6 +23,7 @@ public class RTransMainMethod {
         main.configure().addRoutesBuilder(FindCandidatesRoute.class);
         main.configure().addRoutesBuilder(GetDemographicsRoute.class);
         main.configure().addRoutesBuilder(RevisePersonRoute.class);
+        main.configure().addRoutesBuilder(VersionRoute.class);
 
         main.run(args);
     }
