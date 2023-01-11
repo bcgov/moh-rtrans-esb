@@ -63,6 +63,12 @@ jobs:
       - name: Determine image tags
         run: |
           echo "IMAGE_TAGS= ${GITHUB_SHA::12} ${{ env.RELEASE_VERSION }} ${{ github.event.inputs.OPENSHIFT_IMAGE_TAG }}  " | tee -a $GITHUB_ENV
+      
+      # Run the maven install for rtrans-esb code
+      - name: Maven run for rtrans-esb code
+        run: |
+          cd ${{github.workspace}}/rtrans-esb
+          mvn install -Dimpl-version=${{env.RELEASE_VERSION}} -Dgit-commit=${GITHUB_SHA::12}
 
       # Build from docker file
       - name: Build from Dockerfile
