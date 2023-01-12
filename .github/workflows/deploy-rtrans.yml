@@ -36,7 +36,7 @@ on:
       Branch:
         description: "Enter branch name"
         required: true
-        default: 4555_rtrans-actions
+        default: main
       Release:
         description: "Enter build number"
         required: true

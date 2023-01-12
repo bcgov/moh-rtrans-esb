@@ -34,7 +34,7 @@ on:
       branch:
         description: "Enter branch name (defaults to main):"
         required: true
-        default: 4555_rtrans-actions
+        default: main
 
 jobs:
   createRtransRelease:
