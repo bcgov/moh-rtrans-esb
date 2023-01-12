@@ -7,7 +7,7 @@ ENV RTRANS_HOME=/tmp
 WORKDIR /tmp
 
 #Copy hns-esb jar from target folder
-COPY --from=build-stage /home/app/target/*.jar /tmp/rtrans-esb.jar
+COPY /target/rtrans-esb.jar /tmp
 
 #Expose is for documenting purpose. This is added for deployment support to inform the team that they will need to map this port number for access to application
 #This does not expose the port in container after image is run. While running ops team has to pass the configuration to map the port
