@@ -21,6 +21,7 @@
         <maven-shade-plugin-version>3.2.1</maven-shade-plugin-version>
         <postgresql-version>42.3.3</postgresql-version>
         <git-commit></git-commit>
+        <impl-version>${project.version}-${BRANCH_NAME}-${BUILD_NUMBER}</impl-version>
         <spring-version>4.3.7.RELEASE</spring-version>
     </properties>
     
@@ -256,7 +257,11 @@
                     <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>
-            
+            <plugin>
+			    <groupId>org.codehaus.gmaven</groupId>
+			    <artifactId>groovy-maven-plugin</artifactId>
+			    <version>2.1.1</version>
+			</plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -269,6 +274,9 @@
                             <goal>shade</goal>
                         </goals>
                         <configuration>
+                          <source>
+			                log.info('Impl-version is: ${impl-version}')
+			            </source>
                             <filters>
                                 <filter>
                                     <artifact>*:*</artifact>
