@@ -21,7 +21,6 @@
         <maven-shade-plugin-version>3.2.1</maven-shade-plugin-version>
         <postgresql-version>42.3.3</postgresql-version>
         <git-commit></git-commit>
-        <impl-version>${project.version}-${BRANCH_NAME}-${BUILD_NUMBER}</impl-version>
         <spring-version>4.3.7.RELEASE</spring-version>
     </properties>
     
