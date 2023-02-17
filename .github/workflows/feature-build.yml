@@ -88,8 +88,8 @@ jobs:
         id: push-image-gold
         uses: redhat-actions/push-to-registry@v2
         with:
-          image: ${{steps.build-docker-hniesb.outputs.image}}
-          tags: ${{steps.build-docker-hniesb.outputs.tags}}
+          image: ${{steps.build-docker.outputs.image}}
+          tags: ${{steps.build-docker.outputs.tags}}
           registry: ${{env.IMAGE_REGISTRY_GOLD}}/${{env.DEFAULT_NAMESPACE}}
           username: ${{env.OPENSHIFT_SA}}
           password: ${{env.OPENSHIFT_GOLD_TOKEN}}
@@ -99,8 +99,8 @@ jobs:
         id: push-image-golddr
         uses: redhat-actions/push-to-registry@v2
         with:
-          image: ${{steps.build-docker-hniesb.outputs.image}}
-          tags: ${{steps.build-docker-hniesb.outputs.tags}}
+          image: ${{steps.build-docker.outputs.image}}
+          tags: ${{steps.build-docker.outputs.tags}}
           registry: ${{env.IMAGE_REGISTRY_GOLDDR}}/${{env.DEFAULT_NAMESPACE}}
           username: ${{env.OPENSHIFT_SA}}
           password: ${{env.OPENSHIFT_GOLDDR_TOKEN}}
