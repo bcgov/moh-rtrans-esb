@@ -2,12 +2,11 @@
 # This workflow is triggered manually and performs the following activities:
 # 1. Determine the version number tag i.e. Release_1.0_<branch-name>_<build execution>  
 # 2. Determine tags for OpenShift image
-# 3. Run the maven install for common code
-# 4. Run the maven install for hnsesb code
-# 5. Run the docker file to create image
-# 6. Push the image to OpenShift repository
-# 7. Deploy the image in Dev environment
-# 8. Create a tag for git repository
+# 5. Run the maven install for rtrans code
+# 6. Run the docker file to create image
+# 7. Push the image to OpenShift repository
+# 8. Deploy the image in Dev environment
+# 9. Create a tag for git repository
 
 name: release
 
@@ -92,8 +91,8 @@ jobs:
         id: push-image-gold
         uses: redhat-actions/push-to-registry@v2
         with:
-          image: ${{steps.build-docker-hniesb.outputs.image}}
-          tags: ${{steps.build-docker-hniesb.outputs.tags}}
+          image: ${{steps.build-docker.outputs.image}}
+          tags: ${{steps.build-docker.outputs.tags}}
           registry: ${{env.IMAGE_REGISTRY_GOLD}}/${{env.DEFAULT_NAMESPACE}}
           username: ${{env.OPENSHIFT_SA}}
           password: ${{env.OPENSHIFT_GOLD_TOKEN}}
@@ -103,8 +102,8 @@ jobs:
         id: push-image-golddr
         uses: redhat-actions/push-to-registry@v2
         with:
-          image: ${{steps.build-docker-hniesb.outputs.image}}
-          tags: ${{steps.build-docker-hniesb.outputs.tags}}
+          image: ${{steps.build-docker.outputs.image}}
+          tags: ${{steps.build-docker.outputs.tags}}
           registry: ${{env.IMAGE_REGISTRY_GOLDDR}}/${{env.DEFAULT_NAMESPACE}}
           username: ${{env.OPENSHIFT_SA}}
           password: ${{env.OPENSHIFT_GOLDDR_TOKEN}}
@@ -199,7 +198,7 @@ jobs:
         if: ${{success()}}
         run: |
           cd rtrans-devops/overlay/dev-dr
-          kustomize edit set image "hnsesb-image=${{env.IMAGE_REGISTRY_GOLDDR}}/${{env.DEV_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.createRtransRelease.outputs.GOLDDR_IMAGE_SHA}}"
+          kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLDDR}}/${{env.DEV_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.createRtransRelease.outputs.GOLDDR_IMAGE_SHA}}"
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git commit -am "Deploying release: ${{needs.createRtransRelease.outputs.RELEASE_VERSION}} in dev using release workflow."
