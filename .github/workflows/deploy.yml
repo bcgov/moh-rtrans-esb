@@ -22,10 +22,8 @@ env:
   OPENSHIFT_SERVER_GOLD: ${{secrets.OPENSHIFT_SERVER_GOLD}}
   OPENSHIFT_SERVER_GOLDDR: ${{secrets.OPENSHIFT_SERVER_GOLDDR}}
   DEFAULT_NAMESPACE: c8d6f2-tools
-  DEV_NAMESPACE: c8d6f2-dev
   IMAGE_REGISTRY_GOLD: image-registry.apps.gold.devops.gov.bc.ca
   IMAGE_REGISTRY_GOLDDR: image-registry.apps.golddr.devops.gov.bc.ca
-  OPENSHIFT_SA: ${{secrets.C8D6F2_OPENSHIFT_GITHUB_ACTIONS_SA}}
   OPENSHIFT_GOLD_TOKEN: ${{secrets.C8D6F2_OPENSHIFT_GITHUB_ACTIONS_SA_GOLD_TOKEN}}
   OPENSHIFT_GOLDDR_TOKEN: ${{secrets.C8D6F2_OPENSHIFT_GITHUB_ACTIONS_SA_GOLDDR_TOKEN}}
   IMAGE_NAME: rtrans-esb
@@ -237,7 +235,7 @@ jobs:
           kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLDDR}}/${{needs.validate.outputs.TARGET_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.validate.outputs.IMAGE_ID}}"
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git commit -am "Deploying feature build: ${{needs.validate.outputs.IMAGE_TAG}} in ${{needs.validate.outputs.ENVIRONMENT}} using deploy workflow."
+          git commit -am "Deploying feature build: ${{needs.validate.outputs.IMAGE_TAG}} in ${{github.event.inputs.ENVIRONMENT}} using deploy workflow."
           git push origin
 
   deploy-release-build:
