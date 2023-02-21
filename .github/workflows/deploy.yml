@@ -29,7 +29,7 @@ env:
   IMAGE_NAME: rtrans-esb
   TARGET_NAMESPACE:
   FEATURE_BUILD_IMAGE_TAG_PREFIX: "featurebuild"
-  RELEASE_BUILD_IMAGE_TAG_PREFIX: "release_1.0_"
+  RELEASE_BUILD_IMAGE_TAG_PREFIX: "release_1.0"
   IMAGE_ID:
 
 # Controls when the workflow will run
