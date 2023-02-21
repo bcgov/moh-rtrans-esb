@@ -1,6 +1,6 @@
 # This is multi job workflow that builds the image, deploys that image in OpenShift dev environment and creates a tag in gihub repository.
 # This workflow is triggered manually and performs the following activities:
-# 1. Determine the version number tag i.e. Release_1.0-<branch-name>-<build execution>  
+# 1. Determine the version number tag i.e. Release-1.0-<branch-name>-<build execution>  
 # 2. Determine tags for OpenShift image
 # 5. Run the maven install for rtrans code
 # 6. Run the docker file to create image
@@ -57,7 +57,7 @@ jobs:
         with:
           ref: main
 
-      # 1. Determine the version number tag i.e. Release_1.1-<branch-name>-<build execution> 
+      # 1. Determine the version number tag i.e. Release-1.1-<branch-name>-<build execution> 
       - name: Determine Version number
         # Branch name is fixed to 'main' in version identifier
         run: |
