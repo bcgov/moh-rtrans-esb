@@ -57,11 +57,11 @@ jobs:
         with:
           ref: main
 
-      # 1. Determine the version number tag i.e. Release-1.1-<branch-name>-<build execution> 
+      # 1. Determine the version number tag i.e. release-1.1-<branch-name>-<build execution> 
       - name: Determine Version number
         # Branch name is fixed to 'main' in version identifier
         run: |
-          echo "RELEASE_VERSION=Release-1.1-main-${{github.run_number}}" | tee -a $GITHUB_ENV
+          echo "RELEASE_VERSION=release-1.1-main-${{github.run_number}}" | tee -a $GITHUB_ENV
           echo "COMMIT_SHA=${GITHUB_SHA}" | tee -a $GITHUB_ENV
         
       # 2. Determine tags for OpenShift image
