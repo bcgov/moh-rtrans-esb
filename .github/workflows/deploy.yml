@@ -81,6 +81,17 @@ jobs:
           echo "BUILD_TYPE=${{github.event.inputs.Build_Type}}"  | tee -a $GITHUB_ENV
 
       # Find the namespace and image digest from input parameters
+      - name: Determine if replication required
+        id: get-replication
+        uses: actions/github-script@v5
+        with:
+          script: |
+            if (`${{github.event.inputs.Environment}}` == 'production' ) {
+              return "true"
+            }
+            return "false"
+
+      # Find the namespace and image digest from input parameters
       - name: Compute target namespace
         id: get-namespace
         uses: actions/github-script@v5
