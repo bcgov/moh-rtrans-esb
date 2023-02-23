@@ -31,6 +31,7 @@ env:
   FEATURE_BUILD_IMAGE_TAG_PREFIX: "featurebuild"
   RELEASE_BUILD_IMAGE_TAG_PREFIX: "release-1.1"
   IMAGE_ID:
+  REPLICATE: "false"
 
 # Controls when the workflow will run
 on:
@@ -119,10 +120,11 @@ jobs:
               return "${{env.FEATURE_BUILD_IMAGE_TAG_PREFIX}}-${{github.event.inputs.Branch}}"
             }
 
-      - name: Compute image tag
+      - name: Compute image tag and replication
         run: |
           echo "TARGET_NAMESPACE=${{steps.get-namespace.outputs.result}}"  | tee -a $GITHUB_ENV
           echo "IMAGE_TAG=${{steps.get-image-prefix.outputs.result}}-${{github.event.inputs.Build_Run_Number}}"  | tee -a $GITHUB_ENV
+          echo "REPLICATE=${{steps.get-replication.outputs.result}}"  | tee -a $GITHUB_ENV
 
       # Login to OpenShift
       - name: Log in to OpenShift
@@ -231,8 +233,12 @@ jobs:
         run: |
           cd rtrans-devops/overlay/${{steps.get-kustomize-folder.outputs.result}}
           kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLD}}/${{needs.validate.outputs.TARGET_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.validate.outputs.IMAGE_ID}}"
-          cd ../${{steps.get-kustomize-folder.outputs.result}}-dr
-          kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLDDR}}/${{needs.validate.outputs.TARGET_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.validate.outputs.IMAGE_ID}}"
+
+          if (`${{env.REPLICATE}}` == 'true') {
+            cd ../${{steps.get-kustomize-folder.outputs.result}}-dr
+            kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLDDR}}/${{needs.validate.outputs.TARGET_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.validate.outputs.IMAGE_ID}}"
+          }
+
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git commit -am "Deploying feature build: ${{needs.validate.outputs.IMAGE_TAG}} in ${{github.event.inputs.ENVIRONMENT}} using deploy workflow."
@@ -292,8 +298,10 @@ jobs:
         run: |
           cd rtrans-devops/overlay/${{steps.get-kustomize-folder.outputs.result}}
           kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLD}}/${{needs.validate.outputs.TARGET_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.validate.outputs.IMAGE_ID}}"
-          cd ../${{steps.get-kustomize-folder.outputs.result}}-dr
-          kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLDDR}}/${{needs.validate.outputs.TARGET_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.validate.outputs.IMAGE_ID}}"
+          if (`${{env.REPLICATE}}` == 'true') {
+            cd ../${{steps.get-kustomize-folder.outputs.result}}-dr
+            kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLDDR}}/${{needs.validate.outputs.TARGET_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.validate.outputs.IMAGE_ID}}"
+          }
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git commit -am "Deploying release build: ${{needs.validate.outputs.IMAGE_TAG}} in ${{needs.validate.outputs.ENVIRONMENT}} using deploy workflow."
