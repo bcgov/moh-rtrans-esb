@@ -81,6 +81,17 @@ jobs:
           echo "BUILD_TYPE=${{github.event.inputs.Build_Type}}"  | tee -a $GITHUB_ENV
 
       # Find the namespace and image digest from input parameters
+      - name: Determine if replication required
+        id: get-replication
+        uses: actions/github-script@v5
+        with:
+          script: |
+            if (`${{github.event.inputs.Environment}}` == 'production' ) {
+              return "true"
+            }
+            return "false"
+
+      # Find the namespace and image digest from input parameters
       - name: Compute target namespace
         id: get-namespace
         uses: actions/github-script@v5
@@ -119,16 +130,6 @@ jobs:
             if (`${{env.BUILD_TYPE}}` == 'Feature') {
               return "${{env.FEATURE_BUILD_IMAGE_TAG_PREFIX}}-${{github.event.inputs.Branch}}"
             }
-
-      - name: Determine if replication required
-        id: get-replication
-        uses: actions/github-script@v5
-        with:
-          script: |
-            if (`${{github.event.inputs.Environment}}` == 'production' ) {
-              return "true"
-            }
-            return "false"
 
       - name: Compute image tag and replication
         run: |
@@ -238,15 +239,21 @@ jobs:
             }
             core.setFailed(`❌ Invalid inputs for Environment and branch`  );
 
-      - name: Update image ID and commit change
+      - name: Update image ID for gold
         if: ${{success()}}
         run: |
           cd rtrans-devops/overlay/${{steps.get-kustomize-folder.outputs.result}}
           kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLD}}/${{needs.validate.outputs.TARGET_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.validate.outputs.IMAGE_ID}}"
-          if (`${{needs.validate.outputs.REPLICATE}}` == 'true') {
-            cd ../${{steps.get-kustomize-folder.outputs.result}}-dr
-            kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLDDR}}/${{needs.validate.outputs.TARGET_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.validate.outputs.IMAGE_ID}}"
-          }
+          
+      - name: Update image ID for golddr is required
+        if: ${{success()}} && ${{env.REPLICATE}}` == 'true'
+        run: |
+          cd ../${{steps.get-kustomize-folder.outputs.result}}-dr
+          kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLDDR}}/${{needs.validate.outputs.TARGET_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.validate.outputs.IMAGE_ID}}"
+
+      - name: Commit change
+        if: ${{success()}}
+        run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
           git commit -am "Deploying feature build: ${{needs.validate.outputs.IMAGE_TAG}} in ${{github.event.inputs.ENVIRONMENT}} using deploy workflow."
