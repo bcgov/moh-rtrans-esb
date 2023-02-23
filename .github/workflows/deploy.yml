@@ -245,21 +245,13 @@ jobs:
           cd rtrans-devops/overlay/${{steps.get-kustomize-folder.outputs.result}}
           kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLD}}/${{needs.validate.outputs.TARGET_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.validate.outputs.IMAGE_ID}}"
           
-      - name: Update image ID for golddr is required
+      - name: Update image ID for golddr if required
         if: ${{success() && env.REPLICATE == 'true'}}
         run: |
-          pwd
           cd rtrans-devops/overlay/${{steps.get-kustomize-folder.outputs.result}}-dr
           kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLDDR}}/${{needs.validate.outputs.TARGET_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.validate.outputs.IMAGE_ID}}"
 
-      - name: Update image ID for golddr is required
-        if: ${{success() && env.REPLICATE == 'false'}}
-        run: |
-          pwd
-          cd rtrans-devops/overlay/${{steps.get-kustomize-folder.outputs.result}}-dr
-          kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLDDR}}/${{needs.validate.outputs.TARGET_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.validate.outputs.IMAGE_ID}}"
-
-      - name: Commit change
+      - name: Commit changes
         if: ${{success()}}
         run: |
           git config --local user.email "action@github.com"
