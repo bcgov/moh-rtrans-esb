@@ -246,7 +246,7 @@ jobs:
           kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLD}}/${{needs.validate.outputs.TARGET_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.validate.outputs.IMAGE_ID}}"
           
       - name: Update image ID for golddr if required
-        if: ${{success() && env.REPLICATE == 'true'}}
+        if: ${{success() && env.REPLICATE}}
         run: |
           cd rtrans-devops/overlay/${{steps.get-kustomize-folder.outputs.result}}-dr
           kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLDDR}}/${{needs.validate.outputs.TARGET_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.validate.outputs.IMAGE_ID}}"
@@ -325,5 +325,5 @@ jobs:
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git commit -am "Deploying release build: ${{needs.validate.outputs.IMAGE_TAG}} in ${{needs.validate.outputs.ENVIRONMENT}} using deploy workflow."
+          git commit -am "Deploying release build: ${{needs.validate.outputs.IMAGE_TAG}} in ${{github.event.inputs.ENVIRONMENT}} using deploy workflow."
           git push origin
