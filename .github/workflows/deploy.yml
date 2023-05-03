@@ -245,12 +245,6 @@ jobs:
           cd rtrans-devops/overlay/${{steps.get-kustomize-folder.outputs.result}}
           kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLD}}/${{needs.validate.outputs.TARGET_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.validate.outputs.IMAGE_ID}}"
           
-      - name: Update image ID for golddr if required
-        if: ${{success() && env.REPLICATE}}
-        run: |
-          cd rtrans-devops/overlay/${{steps.get-kustomize-folder.outputs.result}}-dr
-          kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLDDR}}/${{needs.validate.outputs.TARGET_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.validate.outputs.IMAGE_ID}}"
-
       - name: Commit changes
         if: ${{success()}}
         run: |
