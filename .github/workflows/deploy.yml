@@ -221,7 +221,7 @@ jobs:
         with:
           ssh-key: ${{secrets.GITOPS_C8D6F2_PRIVATE_KEY}}
           repository: bcgov-c/tenant-gitops-c8d6f2
-          ref: 8045-move-rtrans-prod-to-gold-cluster
+          ref: main
 
       - name: Set up Kustomize
         uses: imranismail/setup-kustomize@v1
@@ -245,12 +245,6 @@ jobs:
           cd rtrans-devops/overlay/${{steps.get-kustomize-folder.outputs.result}}
           kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLD}}/${{needs.validate.outputs.TARGET_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.validate.outputs.IMAGE_ID}}"
           
-      - name: Update image ID for golddr if required
-        if: ${{success() && env.REPLICATE}}
-        run: |
-          cd rtrans-devops/overlay/${{steps.get-kustomize-folder.outputs.result}}-dr
-          kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLDDR}}/${{needs.validate.outputs.TARGET_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.validate.outputs.IMAGE_ID}}"
-
       - name: Commit changes
         if: ${{success()}}
         run: |
@@ -285,7 +279,7 @@ jobs:
         with:
           ssh-key: ${{secrets.GITOPS_C8D6F2_PRIVATE_KEY}}
           repository: bcgov-c/tenant-gitops-c8d6f2
-          ref: 8045-move-rtrans-prod-to-gold-cluster
+          ref: main
 
       - name: Set up Kustomize
         uses: imranismail/setup-kustomize@v1
