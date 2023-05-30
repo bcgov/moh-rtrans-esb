@@ -71,7 +71,7 @@ jobs:
         uses: actions/github-script@v4
         with:
           script: |
-            if (`${{ github.event.inputs.Environment }}` == 'production' && ${{ github.event.inputs.Branch }} != 'main') {
+            if (`${{ github.event.inputs.Environment }}` == 'production' && `${{ github.event.inputs.Branch }}` != 'main') {
               core.setFailed("Production deployment can only be built from the main branch. Please build the release from main branch and use that build." );
             }
 
