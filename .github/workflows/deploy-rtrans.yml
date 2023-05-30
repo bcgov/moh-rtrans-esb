@@ -66,6 +66,15 @@ jobs:
           insecure_skip_tls_verify: true
           namespace: ${{ env.DEFAULT_NAMESPACE }}
 
+      # Validate that a production deployment uses a release built from the main branch
+      - name: Validate that a production deployment uses a release built from the main branch
+        uses: actions/github-script@v4
+        with:
+          script: |
+            if (`${{ github.event.inputs.Environment }}` == 'production' && `${{ github.event.inputs.Branch }}` != 'main') {
+              core.setFailed("Production deployment can only be built from the main branch. Please build the release from main branch and use that build." );
+            }
+
       # 2. Find the namespace and image digest from input parameters
       - name: Compute namespace
         id: set-namespace
@@ -265,7 +274,7 @@ jobs:
       - name: Update image ID and commit change
         if: ${{ success() }}
         run: |
-          cd rtrans-devops/overlays/${{ env.DEVOPS_DIR }}
+          cd rtrans-devops/overlay/${{ env.DEVOPS_DIR }}
           kustomize edit set image "rtrans-image=image-registry.openshift-image-registry.svc:5000/${{ env.OPENSHIFT_NAMESPACE }}/${{ env.IMAGE_NAME }}${{ env.DEPLOY_SUFFIX }}@${{ env.IMAGE_ID }}"
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
