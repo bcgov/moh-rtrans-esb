@@ -51,6 +51,7 @@ public class RTransFileDropProcessor implements Processor {
         String path = filedropProperties.getProperty("filedrop.path");
         
         String transactionType = (String) exchange.getIn().getHeader(TRANSACTION_MESSAGE_TYPE_HEADER_KEY);
+        //Retrieve the transaction ID from this request header that is present in the incoming message 
         String transactionId = exchange.getIn().getHeader(TRANSACTION_REQUEST_ID, String.class);
         String senderFacility = exchange.getIn().getHeader(V2ServiceConstants.senderFacility, String.class);
         
