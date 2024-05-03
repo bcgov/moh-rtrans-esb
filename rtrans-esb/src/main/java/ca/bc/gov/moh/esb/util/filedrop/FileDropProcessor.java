@@ -27,6 +27,7 @@ import java.util.Calendar;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Source;
 import javax.xml.transform.Transformer;
@@ -44,14 +45,16 @@ public class FileDropProcessor {
     private final String fileDropPath;
     private final String transactionType;
     private final String transactionId;
+    private final String senderFacility;
     private final Properties filedropProperties;
     
     private static final String XML_VERSION_TAG = "<?xml";
 
-    public FileDropProcessor(String path, String transactionType, String transactionId, Properties filedropProperties) {
+    public FileDropProcessor(String path, String transactionType, String transactionId, String senderFacility, Properties filedropProperties) {
         this.fileDropPath = path;
         this.transactionType = transactionType;
         this.transactionId = transactionId;
+        this.senderFacility = senderFacility;
         this.filedropProperties = filedropProperties;
     }
     
@@ -61,7 +64,7 @@ public class FileDropProcessor {
             
             String timeStamp = new SimpleDateFormat("yyyyMMddHHmmssSSS").format(Calendar.getInstance().getTime());
             String fileName = fileDropPath+transactionType + "/"
-                    + transactionId + "-" + timeStamp + "-" + messageType;
+                    + transactionId + "-" + transactionType + "-" + senderFacility + "-" + timeStamp + "-" + messageType + ".txt";
 
             File file = new File(fileName);
             file.getParentFile().mkdirs();
