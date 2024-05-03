@@ -17,6 +17,20 @@
  */
 package ca.bc.gov.moh.rtrans.service.audit;
 
+import java.net.InetAddress;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+import javax.validation.ConstraintViolation;
+
+import org.apache.camel.Exchange;
+import org.apache.camel.Processor;
+import org.apache.camel.component.bean.validator.BeanValidationException;
+import org.apache.commons.lang.StringUtils;
+
 import ca.bc.gov.moh.esb.util.SimpleSerializer;
 import ca.bc.gov.moh.esb.util.audit.AffectedParties;
 import ca.bc.gov.moh.esb.util.audit.AuditableMessage;
@@ -28,18 +42,6 @@ import ca.bc.gov.moh.esb.util.audit.entity.EventMessage;
 import ca.bc.gov.moh.esb.util.audit.entity.Transaction;
 import ca.bc.gov.moh.esb.util.audit.entity.TransactionEvent;
 import ca.bc.gov.moh.rtrans.service.v2.V2ServiceConstants;
-import java.net.InetAddress;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import javax.validation.ConstraintViolation;
-import org.apache.camel.Exchange;
-import org.apache.camel.Processor;
-import org.apache.camel.component.bean.validator.BeanValidationException;
-import org.apache.commons.lang.StringUtils;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  *
@@ -96,6 +98,10 @@ public class RTransAuditProcessorConfig implements Processor {
 
         String serializedTransaction = exchange.getIn().getHeader(TRANSACTION_HEADER_KEY, String.class);
         Transaction transaction;
+        /* TODO Auditing has been disabled but if the auditing is re-enabled then, if present, the transactionID should be taken from the incoming request.
+         * Currently for requests received from HNS-ESB this is available in the request header "X-Request-Id". This is
+         * now being used for creating the filedrop names in RTransFileDropProcessor.process() so the Audit and Filedrop should use the same value for transaction ID.
+         */
         if (StringUtils.isEmpty(serializedTransaction)) {
             String transactionID = UUID.randomUUID().toString();
             exchange.getIn().setHeader(TRANSACTION_ID_HEADER_KEY, transactionID);

@@ -17,16 +17,21 @@
  */
 package ca.bc.gov.moh.rtrans.service.audit;
 
-import ca.bc.gov.moh.esb.util.filedrop.FileDropProcessor;
-import static ca.bc.gov.moh.rtrans.service.audit.RTransAuditProcessorConfig.TRANSACTION_ID_HEADER_KEY;
 import static ca.bc.gov.moh.rtrans.service.audit.RTransAuditProcessorConfig.TRANSACTION_MESSAGE_TYPE_HEADER_KEY;
+
 import java.util.Properties;
+
 import org.apache.camel.Exchange;
 import org.apache.camel.Processor;
+
+import ca.bc.gov.moh.esb.util.filedrop.FileDropProcessor;
+import ca.bc.gov.moh.rtrans.service.v2.V2ServiceConstants;
 
 
 public class RTransFileDropProcessor implements Processor {
     
+    public static final String TRANSACTION_REQUEST_ID = "X-Request-Id";
+
     private String messageType;
     private Properties filedropProperties;
     
@@ -46,9 +51,11 @@ public class RTransFileDropProcessor implements Processor {
         String path = filedropProperties.getProperty("filedrop.path");
         
         String transactionType = (String) exchange.getIn().getHeader(TRANSACTION_MESSAGE_TYPE_HEADER_KEY);
-        String transactionId = exchange.getIn().getHeader(TRANSACTION_ID_HEADER_KEY, String.class);
+        //Retrieve the transaction ID from this request header that is present in the incoming message 
+        String transactionId = exchange.getIn().getHeader(TRANSACTION_REQUEST_ID, String.class);
+        String senderFacility = exchange.getIn().getHeader(V2ServiceConstants.senderFacility, String.class);
         
-        FileDropProcessor fdp = new FileDropProcessor(path, transactionType, transactionId, filedropProperties);
+        FileDropProcessor fdp = new FileDropProcessor(path, transactionType, transactionId, senderFacility, filedropProperties);
         
         String messageBody = exchange.getIn().getBody(String.class);
         fdp.dropFile(messageBody, messageType);
