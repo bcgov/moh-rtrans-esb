@@ -20,7 +20,7 @@ public class InboundRouteBuilder extends RTransRouteBuilder {
         super.configure();
                 
         from("jetty:http://{{minaListenerURI}}:{{port}}/{{endpoint}}?httpMethodRestrict=POST")                              
-        .to("log:HttpLogger?level=INFO&showBody=true&showHeaders=true&multiline=true")
+        .to("log:HttpLogger?level=DEBUG&showBody=true&showHeaders=true&multiline=true")
                 .routeId("rtrans-route")
             	.process(hnSecureStripLeadingBytes)
                 .process(new Hl7v2Parser())
