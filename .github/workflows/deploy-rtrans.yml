@@ -57,6 +57,11 @@ jobs:
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
+      - name: Install OpenShift CLI
+        uses: redhat-actions/openshift-tools-installer@v1
+        with:
+          oc: latest
+
       # 1. Login to OpenShift
       - name: Log in to OpenShift
         uses: redhat-actions/oc-login@v1
@@ -172,6 +177,11 @@ jobs:
           echo "DEVOPS_DIR=${{needs.compute.outputs.DEVOPS_DIR}}"  | tee -a $GITHUB_ENV
           echo "IMAGE_ID=${{needs.compute.outputs.IMAGE_ID}}"  | tee -a $GITHUB_ENV
 
+      - name: Install OpenShift CLI
+        uses: redhat-actions/openshift-tools-installer@v1
+        with:
+          oc: latest
+
       # Login to OpenShift
       - name: Log in to OpenShift
         uses: redhat-actions/oc-login@v1
@@ -235,6 +245,11 @@ jobs:
           echo "DEPLOY_SUFFIX=${{needs.compute.outputs.DEPLOY_SUFFIX}}"  | tee -a $GITHUB_ENV
           echo "DEVOPS_DIR=${{needs.compute.outputs.DEVOPS_DIR}}"  | tee -a $GITHUB_ENV
           echo "IMAGE_ID=${{needs.compute.outputs.IMAGE_ID}}"  | tee -a $GITHUB_ENV
+
+      - name: Install OpenShift CLI
+        uses: redhat-actions/openshift-tools-installer@v1
+        with:
+          oc: latest
 
       # Login to OpenShift
       - name: Log in to OpenShift
