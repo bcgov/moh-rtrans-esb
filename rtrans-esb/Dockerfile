@@ -1,4 +1,4 @@
-FROM eclipse-temurin:11-jre
+FROM docker.io/library/eclipse-temurin:11-jre
 
 #Setting env variable. This is used for location of external properties
 ENV RTRANS_HOME=/tmp
