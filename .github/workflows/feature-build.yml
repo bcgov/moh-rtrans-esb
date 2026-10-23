@@ -1,158 +1,229 @@
-# This is a manual workflow that performs following activities:
-# 1. Determine the version number tag i.e. FeatureBuild-<branch-name>-<build execution>  
-# 2. Determine tags for OpenShift image
-# 3. Run the maven install for code from input branch name
-# 4. Run the docker file to create image
-# 5. Push the image to OpenShift repository
-# 6. Deploy the image in Dev environment
-
 name: feature-build
 
-# Build the image and deploy in OpenShift dev environment
-env:
-  OPENSHIFT_SERVER_GOLD: ${{secrets.OPENSHIFT_SERVER_GOLD}}
-  OPENSHIFT_SERVER_GOLDDR: ${{secrets.OPENSHIFT_SERVER_GOLDDR}}
-  DEFAULT_NAMESPACE: c8d6f2-tools
-  DEV_NAMESPACE: c8d6f2-dev
-  IMAGE_REGISTRY_GOLD: image-registry.apps.gold.devops.gov.bc.ca
-  IMAGE_REGISTRY_GOLDDR: image-registry.apps.golddr.devops.gov.bc.ca
-  OPENSHIFT_SA: ${{secrets.C8D6F2_OPENSHIFT_GITHUB_ACTIONS_SA}}
-  OPENSHIFT_GOLD_TOKEN: ${{secrets.C8D6F2_OPENSHIFT_GITHUB_ACTIONS_SA_GOLD_TOKEN}}
-  OPENSHIFT_GOLDDR_TOKEN: ${{secrets.C8D6F2_OPENSHIFT_GITHUB_ACTIONS_SA_GOLDDR_TOKEN}}
-  IMAGE_NAME: rtrans-esb
-  IMAGE_TAGS: 
-  FEATURE_BUILD_NAME:
+permissions:
+  contents: read
 
-# Controls when the workflow will run
 on:
-  # The user specifies the optional tag  
   workflow_dispatch:
     inputs:
+      DEPLOY_TARGET:
+        type: choice
+        description: Environment to deploy the feature build to
+        required: true
+        options:
+          - Silver Test
+          - Gold
+        default: Silver Test
       BRANCH_NAME:
-        description: 'Name of the feature branch'
+        type: string
+        description: Name of the feature branch
         required: true
         default: main
 
+concurrency:
+  group: feature-build-${{ inputs.DEPLOY_TARGET }}
+  cancel-in-progress: false
+
+env:
+  GOLD_OPENSHIFT_SERVER: ${{ secrets.OPENSHIFT_SERVER_GOLD }}
+  GOLD_DEFAULT_NAMESPACE: c8d6f2-tools
+  GOLD_DEV_NAMESPACE: c8d6f2-dev
+  GOLD_IMAGE_REGISTRY: image-registry.apps.gold.devops.gov.bc.ca
+  GOLDDR_IMAGE_REGISTRY: image-registry.apps.golddr.devops.gov.bc.ca
+  GOLD_OPENSHIFT_SA: ${{ secrets.C8D6F2_OPENSHIFT_GITHUB_ACTIONS_SA }}
+  GOLD_OPENSHIFT_TOKEN: ${{ secrets.C8D6F2_OPENSHIFT_GITHUB_ACTIONS_SA_GOLD_TOKEN }}
+  GOLDDR_OPENSHIFT_TOKEN: ${{ secrets.C8D6F2_OPENSHIFT_GITHUB_ACTIONS_SA_GOLDDR_TOKEN }}
+  SILVER_OPENSHIFT_SERVER: ${{ secrets.C5839F_OPENSHIFT_SERVER }}
+  SILVER_OPENSHIFT_TOKEN: ${{ secrets.C5839F_OPENSHIFT_GITHUB_ACTIONS_SA_TOKEN }}
+  SILVER_DEFAULT_NAMESPACE: c5839f-tools
+  SILVER_TEST_NAMESPACE: c5839f-test
+  SILVER_IMAGE_REGISTRY: image-registry.apps.silver.devops.gov.bc.ca/c5839f-tools
+  SILVER_IMAGE_REGISTRY_USER: ${{ secrets.C5839F_OPENSHIFT_GITHUB_ACTIONS_SA_USER }}
+  IMAGE_NAME: rtrans-esb
+
 jobs:
-  # This job runs the maven commands to compile code and build package.
-  # This job also creates docker image and push the image to OpenShift repository
   createRtransFeatureBuild:
-    # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    # Map a step output to a job output
     outputs:
-      GOLD_IMAGE_SHA: ${{steps.push-image-gold.outputs.digest}}
-      GOLDDR_IMAGE_SHA: ${{steps.push-image-golddr.outputs.digest}}
-      FEATURE_BUILD_NAME: ${{env.FEATURE_BUILD_NAME}}
+      GOLD_IMAGE_SHA: ${{ steps.push-image-gold.outputs.digest }}
+      SILVER_IMAGE_SHA: ${{ steps.push-image-silver.outputs.digest }}
+      FEATURE_BUILD_NAME: ${{ steps.metadata.outputs.feature_build_name }}
 
-    # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
-      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      # It should get the code from branch that triggered this workflow
       - name: Check out code
-        id: checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
-          ref: ${{github.event.inputs.BRANCH_NAME}}
+          ref: ${{ inputs.BRANCH_NAME }}
+          persist-credentials: false
 
-
-      # 1. Determine build name i.e. featurebuild-<branch-name>-<build execution count> 
-      - name: Determine Build name
+      - name: Determine build name and tags
+        id: metadata
+        env:
+          BRANCH_NAME: ${{ inputs.BRANCH_NAME }}
+        shell: bash
         run: |
-          echo "FEATURE_BUILD_NAME=featurebuild-${{github.event.inputs.BRANCH_NAME}}-${{github.run_number}}" | tee -a $GITHUB_ENV
-        
-      # 2. Determine tags for OpenShift image
-      - name: Determine image tags
-        run: |
-          echo "IMAGE_TAGS= ${GITHUB_SHA::12} ${{env.FEATURE_BUILD_NAME}}" | tee -a $GITHUB_ENV
+          set -euo pipefail
+          commit_sha=$(git rev-parse --verify HEAD)
+          short_sha=${commit_sha:0:12}
+          branch_slug=$(printf '%s' "$BRANCH_NAME" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9_.-]+/-/g; s/^[.-]+//; s/[.-]+$//')
+          branch_slug=${branch_slug:0:60}
+          branch_slug=${branch_slug%-}
+          branch_slug=${branch_slug%.}
+          if [[ -z "$branch_slug" ]]; then
+            branch_slug=branch
+          fi
+          feature_build_name="featurebuild-${branch_slug}-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}"
+          {
+            echo "FEATURE_BUILD_NAME=$feature_build_name"
+            echo "IMAGE_TAGS=$short_sha $feature_build_name"
+            echo "SOURCE_SHA=$short_sha"
+          } >> "$GITHUB_ENV"
+          echo "feature_build_name=$feature_build_name" >> "$GITHUB_OUTPUT"
 
-      # Run the maven install for rtrans-esb code
-      - name: Maven run for rtrans-esb code
-        run: |
-          cd ${{github.workspace}}/rtrans-esb
-          mvn install -Dimpl-version=${{env.RELEASE_VERSION}} -Dgit-commit=${GITHUB_SHA::12}
+      - name: Maven build
+        working-directory: ./rtrans-esb
+        run: mvn --batch-mode install "-Dimpl-version=$FEATURE_BUILD_NAME" "-Dgit-commit=$SOURCE_SHA"
 
-      # Build from docker file
-      - name: Build from Dockerfile
+      - name: Build image
         id: build-docker
         uses: redhat-actions/buildah-build@v2
         with:
           image: ${{ env.IMAGE_NAME }}
           tags: ${{ env.IMAGE_TAGS }}
           context: ./rtrans-esb
-          dockerfiles: |
-            ./rtrans-esb/Dockerfile
+          containerfiles: ./rtrans-esb/Dockerfile
 
-      # Upload the images in image repository in tools namespace
-      - name: Push image to gold registry
+      - name: Push image to Gold registry
         id: push-image-gold
+        if: inputs.DEPLOY_TARGET == 'Gold'
         uses: redhat-actions/push-to-registry@v2
         with:
-          image: ${{steps.build-docker.outputs.image}}
-          tags: ${{steps.build-docker.outputs.tags}}
-          registry: ${{env.IMAGE_REGISTRY_GOLD}}/${{env.DEFAULT_NAMESPACE}}
-          username: ${{env.OPENSHIFT_SA}}
-          password: ${{env.OPENSHIFT_GOLD_TOKEN}}
- 
-      # Upload the images in image repository in tools namespace
-      - name: Push image to gold dr registry
-        id: push-image-golddr
+          image: ${{ steps.build-docker.outputs.image }}
+          tags: ${{ steps.build-docker.outputs.tags }}
+          registry: ${{ env.GOLD_IMAGE_REGISTRY }}/${{ env.GOLD_DEFAULT_NAMESPACE }}
+          username: ${{ env.GOLD_OPENSHIFT_SA }}
+          password: ${{ env.GOLD_OPENSHIFT_TOKEN }}
+
+      - name: Push image to Gold DR registry
+        if: inputs.DEPLOY_TARGET == 'Gold'
         uses: redhat-actions/push-to-registry@v2
         with:
-          image: ${{steps.build-docker.outputs.image}}
-          tags: ${{steps.build-docker.outputs.tags}}
-          registry: ${{env.IMAGE_REGISTRY_GOLDDR}}/${{env.DEFAULT_NAMESPACE}}
-          username: ${{env.OPENSHIFT_SA}}
-          password: ${{env.OPENSHIFT_GOLDDR_TOKEN}}
+          image: ${{ steps.build-docker.outputs.image }}
+          tags: ${{ steps.build-docker.outputs.tags }}
+          registry: ${{ env.GOLDDR_IMAGE_REGISTRY }}/${{ env.GOLD_DEFAULT_NAMESPACE }}
+          username: ${{ env.GOLD_OPENSHIFT_SA }}
+          password: ${{ env.GOLDDR_OPENSHIFT_TOKEN }}
 
+      - name: Push image to Silver registry
+        id: push-image-silver
+        if: inputs.DEPLOY_TARGET == 'Silver Test'
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.build-docker.outputs.image }}
+          tags: ${{ steps.build-docker.outputs.tags }}
+          registry: ${{ env.SILVER_IMAGE_REGISTRY }}
+          username: ${{ env.SILVER_IMAGE_REGISTRY_USER }}
+          password: ${{ env.SILVER_OPENSHIFT_TOKEN }}
 
-  # This job updates the Gitops repository with image created in  this workflow. 
-  # Updating the image in Deployment.yml will result in deploying that image in OpenShift
-  deployToGold:
+  deploy:
     runs-on: ubuntu-latest
-    needs: [createRtransFeatureBuild]
-    
+    needs: createRtransFeatureBuild
+
     steps:
       - name: Install OpenShift CLI
         uses: redhat-actions/openshift-tools-installer@v1
         with:
           oc: latest
 
-      # 1. Login to OpenShift
-      - name: Log in to OpenShift
+      - name: Log in to Gold OpenShift
+        if: inputs.DEPLOY_TARGET == 'Gold'
         uses: redhat-actions/oc-login@v1
         with:
-          openshift_server_url: ${{env.OPENSHIFT_SERVER_GOLD}}
-          openshift_token: ${{env.OPENSHIFT_GOLD_TOKEN}}
-          insecure_skip_tls_verify: true
-          namespace: ${{env.DEFAULT_NAMESPACE}}
+          openshift_server_url: ${{ env.GOLD_OPENSHIFT_SERVER }}
+          openshift_token: ${{ env.GOLD_OPENSHIFT_TOKEN }}
+          namespace: ${{ env.GOLD_DEFAULT_NAMESPACE }}
 
-      # 2. Push the image to selected repository
-      - name: Push Image to dev 
+      - name: Log in to Silver OpenShift
+        if: inputs.DEPLOY_TARGET == 'Silver Test'
+        uses: redhat-actions/oc-login@v1
+        with:
+          openshift_server_url: ${{ env.SILVER_OPENSHIFT_SERVER }}
+          openshift_token: ${{ env.SILVER_OPENSHIFT_TOKEN }}
+          namespace: ${{ env.SILVER_DEFAULT_NAMESPACE }}
+
+      - name: Tag image in Gold dev namespace
+        if: inputs.DEPLOY_TARGET == 'Gold'
+        env:
+          DIGEST: ${{ needs.createRtransFeatureBuild.outputs.GOLD_IMAGE_SHA }}
+          BUILD_NAME: ${{ needs.createRtransFeatureBuild.outputs.FEATURE_BUILD_NAME }}
         run: |
-          oc tag ${{env.DEFAULT_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.createRtransFeatureBuild.outputs.GOLD_IMAGE_SHA}} ${{env.DEV_NAMESPACE}}/${{env.IMAGE_NAME}}:${{needs.createRtransFeatureBuild.outputs.FEATURE_BUILD_NAME}}
-      
-      - name: Prepare deploy key
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: ${{secrets.GITOPS_C8D6F2_PRIVATE_KEY}}
+          oc tag "${GOLD_DEFAULT_NAMESPACE}/${IMAGE_NAME}@${DIGEST}" "${GOLD_DEV_NAMESPACE}/${IMAGE_NAME}:${BUILD_NAME}"
 
-      - name: Check out manifest repo
-        uses: actions/checkout@v2
+      - name: Tag image in Silver Test namespace
+        if: inputs.DEPLOY_TARGET == 'Silver Test'
+        env:
+          DIGEST: ${{ needs.createRtransFeatureBuild.outputs.SILVER_IMAGE_SHA }}
+          BUILD_NAME: ${{ needs.createRtransFeatureBuild.outputs.FEATURE_BUILD_NAME }}
+        run: |
+          oc tag "${SILVER_DEFAULT_NAMESPACE}/${IMAGE_NAME}@${DIGEST}" "${SILVER_TEST_NAMESPACE}/${IMAGE_NAME}:${BUILD_NAME}"
+
+      - name: Check out Gold manifest repo
+        if: inputs.DEPLOY_TARGET == 'Gold'
+        uses: actions/checkout@v4
         with:
-          ssh-key: ${{secrets.GITOPS_C8D6F2_PRIVATE_KEY}}
+          ssh-key: ${{ secrets.GITOPS_C8D6F2_PRIVATE_KEY }}
           repository: bcgov-c/tenant-gitops-c8d6f2
           ref: main
-      
-      - name: Set up Kustomize
-        uses: imranismail/setup-kustomize@v1
+          path: gitops
 
-      - name: Update image ID and commit change
-        if: ${{success()}}
+      - name: Check out Silver manifest repo
+        if: inputs.DEPLOY_TARGET == 'Silver Test'
+        uses: actions/checkout@v4
+        with:
+          ssh-key: ${{ secrets.GITOPS_C5839F_PRIVATE_KEY }}
+          repository: bcgov-c/tenant-gitops-c5839f
+          ref: main
+          path: gitops
+
+      - name: Set up Kustomize
+        uses: imranismail/setup-kustomize@v2
+        with:
+          kustomize-version: '5.4.3'
+
+      - name: Update Gold image and commit change
+        if: inputs.DEPLOY_TARGET == 'Gold'
+        working-directory: gitops
+        env:
+          DIGEST: ${{ needs.createRtransFeatureBuild.outputs.GOLD_IMAGE_SHA }}
+          BUILD_NAME: ${{ needs.createRtransFeatureBuild.outputs.FEATURE_BUILD_NAME }}
         run: |
+          set -euo pipefail
           cd rtrans-devops/overlay/dev
-          kustomize edit set image "rtrans-image=${{env.IMAGE_REGISTRY_GOLD}}/${{env.DEV_NAMESPACE}}/${{env.IMAGE_NAME}}@${{needs.createRtransFeatureBuild.outputs.GOLD_IMAGE_SHA}}"
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git commit -am "Deploying feature build: ${{needs.createRtransFeatureBuild.outputs.FEATURE_BUILD_NAME}} in dev using feature-build workflow."
-          git push origin
+          kustomize edit set image "rtrans-image=${GOLD_IMAGE_REGISTRY}/${GOLD_DEV_NAMESPACE}/${IMAGE_NAME}@${DIGEST}"
+          cd ../../..
+          git add -u -- rtrans-devops/overlay/dev
+          if ! git diff --cached --quiet; then
+            git config user.email 'action@github.com'
+            git config user.name 'GitHub Action'
+            git commit -m "Deploying feature build: ${BUILD_NAME} in Gold dev using feature-build workflow."
+            git push origin HEAD:main
+          fi
+
+      - name: Update Silver Test image and commit change
+        if: inputs.DEPLOY_TARGET == 'Silver Test'
+        working-directory: gitops
+        env:
+          DIGEST: ${{ needs.createRtransFeatureBuild.outputs.SILVER_IMAGE_SHA }}
+          BUILD_NAME: ${{ needs.createRtransFeatureBuild.outputs.FEATURE_BUILD_NAME }}
+        run: |
+          set -euo pipefail
+          cd rtrans-devops/overlay/test
+          kustomize edit set image "rtrans-image=image-registry.openshift-image-registry.svc:5000/${SILVER_TEST_NAMESPACE}/${IMAGE_NAME}@${DIGEST}"
+          cd ../../..
+          git add -u -- rtrans-devops/overlay/test
+          if ! git diff --cached --quiet; then
+            git config user.email 'action@github.com'
+            git config user.name 'GitHub Action'
+            git commit -m "Deploying feature build: ${BUILD_NAME} in Silver Test using feature-build workflow."
+            git push origin HEAD:main
+          fi
