@@ -1,4 +1,3 @@
-
 #!/bin/bash
 # Manual feature build + deploy for rtrans-esb
 # Usage:
@@ -8,16 +7,21 @@
 #   Environments: silver-dev, silver-test, silver-sbx, silver-prod, gold-prod, gold-dr
 #   Image tag: descriptive name (e.g. java_11_upgrade)
 #
+#   The registry tag is: <image-tag>-<SHORT_SHA>
+#   e.g. java_11_upgrade-a1b2c3d4e5f6
+#
 # Examples:
 #   ./rtrans-feature-deploy.sh silver-dev java_11_upgrade
-#   ./rtrans-feature-deploy.sh promote silver-dev silver-test java_11_upgrade
-#   ./rtrans-feature-deploy.sh promote silver-test silver-sbx java_11_upgrade
-#   ./rtrans-feature-deploy.sh promote silver-test silver-prod java_11_upgrade
+#   ./rtrans-feature-deploy.sh promote silver-dev silver-test java_11_upgrade-a1b2c3d4e5f6
+#   ./rtrans-feature-deploy.sh promote silver-test silver-sbx java_11_upgrade-a1b2c3d4e5f6
+#   ./rtrans-feature-deploy.sh promote silver-test silver-prod java_11_upgrade-a1b2c3d4e5f6
 #
-#   ./rtrans-feature-deploy.sh gold-dr   java_11_upgrade
 #   ./rtrans-feature-deploy.sh gold-prod java_11_upgrade
+#   ./rtrans-feature-deploy.sh gold-dr   java_11_upgrade-a1b2c3d4e5f6
 #
 # Notes:
+#   - Build mode appends SHORT_SHA to your tag automatically
+#   - Promote mode requires the full composite tag (with SHA)
 #   - gold-prod builds, pushes and deploys to Gold, then prompts to switch to Gold DR
 #   - gold-dr is a promote-only target (no build, just tag + deploy on Gold DR cluster)
 #   - You cannot be logged into Gold and Gold DR simultaneously
@@ -51,9 +55,9 @@ resolve_env() {
 
 # --- Promote mode ---
 if [ "${1:-}" = "promote" ]; then
-  SOURCE_ENV="${2:?Usage: $0 promote <source-env> <target-env> <image-tag>}"
-  TARGET_ENV="${3:?Usage: $0 promote <source-env> <target-env> <image-tag>}"
-  IMAGE_TAG="${4:?Usage: $0 promote <source-env> <target-env> <image-tag>}"
+  SOURCE_ENV="${2:?Usage: $0 promote <source-env> <target-env> <full-image-tag>}"
+  TARGET_ENV="${3:?Usage: $0 promote <source-env> <target-env> <full-image-tag>}"
+  FULL_TAG="${4:?Usage: $0 promote <source-env> <target-env> <full-image-tag>}"
 
   SRC=$(resolve_env "${SOURCE_ENV}")
   SRC_NS=$(echo "${SRC}" | awk '{print $1}')
@@ -66,11 +70,14 @@ if [ "${1:-}" = "promote" ]; then
 
   oc whoami || { echo "Not logged in to OpenShift."; exit 1; }
 
-  echo "=== Promoting ${IMAGE_TAG}: ${SOURCE_ENV} -> ${TARGET_ENV} ==="
-  oc tag "${SRC_NS}/${SRC_IS}:${IMAGE_TAG}" "${TGT_NS}/${TGT_IS}:${IMAGE_TAG}"
-  oc set image "deployment/${TGT_DEPLOY}" rtrans-esb="${INTERNAL_REGISTRY}/${TGT_NS}/${TGT_IS}:${IMAGE_TAG}" -n "${TGT_NS}"
+  echo "=== Promoting ${FULL_TAG}: ${SOURCE_ENV} -> ${TARGET_ENV} ==="
 
-  echo "=== Promote complete: ${IMAGE_TAG} now in ${TARGET_ENV} ==="
+  echo "oc tag ${SRC_NS}/${SRC_IS}:${FULL_TAG} ${TGT_NS}/${TGT_IS}:${FULL_TAG}"
+  oc tag ${SRC_NS}/${SRC_IS}:${FULL_TAG} ${TGT_NS}/${TGT_IS}:${FULL_TAG}
+
+  echo "oc set image \"deployment/${TGT_DEPLOY}\" rtrans-esb=\"${INTERNAL_REGISTRY}/${TGT_NS}/${TGT_IS}:${FULL_TAG}\" -n \"${TGT_NS}\""
+  oc set image "deployment/${TGT_DEPLOY}" rtrans-esb="${INTERNAL_REGISTRY}/${TGT_NS}/${TGT_IS}:${FULL_TAG}" -n "${TGT_NS}"
+
   exit 0
 fi
 
@@ -80,15 +87,17 @@ IMAGE_TAG="${2:?Usage: $0 <environment> <image-tag>}"
 
 BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
 SHORT_SHA=$(git rev-parse --short=12 HEAD)
+FULL_TAG="${IMAGE_TAG}-${SHORT_SHA}"
 
 echo "=== Branch: ${BRANCH_NAME} | Tag: ${IMAGE_TAG} | SHA: ${SHORT_SHA} ==="
+echo "=== Registry tag: ${FULL_TAG} ==="
 
 # 1. Maven build
 cd rtrans-esb
 mvn install -Dimpl-version="${IMAGE_TAG}" -Dgit-commit="${SHORT_SHA}"
 cd ..
 
-# 2. Podman build
+# 2. Podman build (local image stays 'latest' to avoid accumulation)
 podman build -t "${IMAGE_NAME}:latest" -f rtrans-esb/Dockerfile rtrans-esb/
 
 RESOLVED=$(resolve_env "${ENV}")
@@ -103,11 +112,11 @@ case "${ENV}" in
     oc whoami || { echo "Not logged in. Run: oc login --server=https://api.silver.devops.gov.bc.ca:6443"; exit 1; }
     oc whoami -t | podman login "${SILVER_REGISTRY}" -u "$(oc whoami)" --password-stdin
 
-    podman tag "${IMAGE_NAME}:latest" "${SILVER_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${IMAGE_TAG}"
-    podman push "${SILVER_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${IMAGE_TAG}"
+    podman tag "${IMAGE_NAME}:latest" "${SILVER_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}"
+    podman push "${SILVER_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}"
 
-    oc tag "${TOOLS_NS}/${IMAGE_NAME}:${IMAGE_TAG}" "${TARGET_NS}/${TARGET_IS}:${IMAGE_TAG}"
-    oc set image "deployment/${TARGET_DEPLOY}" rtrans-esb="${INTERNAL_REGISTRY}/${TARGET_NS}/${TARGET_IS}:${IMAGE_TAG}" -n "${TARGET_NS}"
+    oc tag "${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}" "${TARGET_NS}/${TARGET_IS}:${FULL_TAG}"
+    oc set image "deployment/${TARGET_DEPLOY}" rtrans-esb="${INTERNAL_REGISTRY}/${TARGET_NS}/${TARGET_IS}:${FULL_TAG}" -n "${TARGET_NS}"
 
     echo "=== ${ENV} done ==="
     ;;
@@ -117,24 +126,30 @@ case "${ENV}" in
     oc whoami || { echo "Not logged in. Run: oc login --server=https://api.gold.devops.gov.bc.ca:6443"; exit 1; }
     oc whoami -t | podman login "${GOLD_REGISTRY}" -u "$(oc whoami)" --password-stdin
 
-    podman tag "${IMAGE_NAME}:latest" "${GOLD_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${IMAGE_TAG}"
-    podman push "${GOLD_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${IMAGE_TAG}"
+    podman tag "${IMAGE_NAME}:latest" "${GOLD_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}"
+    podman push "${GOLD_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}"
 
-    oc tag "${TOOLS_NS}/${IMAGE_NAME}:${IMAGE_TAG}" "${TARGET_NS}/${TARGET_IS}:${IMAGE_TAG}"
-    oc set image "deployment/${TARGET_DEPLOY}" rtrans-esb="${INTERNAL_REGISTRY}/${TARGET_NS}/${TARGET_IS}:${IMAGE_TAG}" -n "${TARGET_NS}"
+    oc tag "${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}" "${TARGET_NS}/${TARGET_IS}:${FULL_TAG}"
+    oc set image "deployment/${TARGET_DEPLOY}" rtrans-esb="${INTERNAL_REGISTRY}/${TARGET_NS}/${TARGET_IS}:${FULL_TAG}" -n "${TARGET_NS}"
 
     echo "=== Gold Prod done. Now switching to Gold DR ==="
     printf "Press Enter to log in to Gold DR..."
     read _
 
-    oc login --server=https://api.golddr.devops.gov.bc.ca:6443
+    echo "Log in to Gold DR:"
+    echo "  1. Visit: https://oauth-openshift.apps.golddr.devops.gov.bc.ca/oauth/token/request"
+    echo "  2. Copy the 'oc login --token=...' command"
+    echo "  3. Paste it here and press Enter"
+    read -r OC_LOGIN_CMD
+    eval "${OC_LOGIN_CMD}"
+
     oc whoami -t | podman login "${GOLDDR_REGISTRY}" -u "$(oc whoami)" --password-stdin
 
-    podman tag "${IMAGE_NAME}:latest" "${GOLDDR_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${IMAGE_TAG}"
-    podman push "${GOLDDR_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${IMAGE_TAG}"
+    podman tag "${IMAGE_NAME}:latest" "${GOLDDR_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}"
+    podman push "${GOLDDR_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}"
 
-    oc tag "${TOOLS_NS}/${IMAGE_NAME}:${IMAGE_TAG}" "${TARGET_NS}/${TARGET_IS}:${IMAGE_TAG}"
-    oc set image "deployment/${TARGET_DEPLOY}" rtrans-esb="${INTERNAL_REGISTRY}/${TARGET_NS}/${TARGET_IS}:${IMAGE_TAG}" -n "${TARGET_NS}"
+    oc tag "${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}" "${TARGET_NS}/${TARGET_IS}:${FULL_TAG}"
+    oc set image "deployment/${TARGET_DEPLOY}" rtrans-esb="${INTERNAL_REGISTRY}/${TARGET_NS}/${TARGET_IS}:${FULL_TAG}" -n "${TARGET_NS}"
 
     echo "=== Gold DR done ==="
     ;;
@@ -145,15 +160,15 @@ case "${ENV}" in
     oc whoami || { echo "Not logged in. Run: oc login --server=https://api.golddr.devops.gov.bc.ca:6443"; exit 1; }
     oc whoami -t | podman login "${GOLDDR_REGISTRY}" -u "$(oc whoami)" --password-stdin
 
-    podman tag "${IMAGE_NAME}:latest" "${GOLDDR_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${IMAGE_TAG}"
-    podman push "${GOLDDR_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${IMAGE_TAG}"
+    podman tag "${IMAGE_NAME}:latest" "${GOLDDR_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}"
+    podman push "${GOLDDR_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}"
 
-    oc tag "${TOOLS_NS}/${IMAGE_NAME}:${IMAGE_TAG}" "${TARGET_NS}/${TARGET_IS}:${IMAGE_TAG}"
-    oc set image "deployment/${TARGET_DEPLOY}" rtrans-esb="${INTERNAL_REGISTRY}/${TARGET_NS}/${TARGET_IS}:${IMAGE_TAG}" -n "${TARGET_NS}"
+    oc tag "${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}" "${TARGET_NS}/${TARGET_IS}:${FULL_TAG}"
+    oc set image "deployment/${TARGET_DEPLOY}" rtrans-esb="${INTERNAL_REGISTRY}/${TARGET_NS}/${TARGET_IS}:${FULL_TAG}" -n "${TARGET_NS}"
 
     echo "=== Gold DR done ==="
     ;;
 esac
 
 echo ""
-echo "=== Deploy complete: ${IMAGE_TAG} ==="
+echo "=== Deploy complete: ${FULL_TAG} ==="
