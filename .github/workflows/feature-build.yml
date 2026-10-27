@@ -37,7 +37,7 @@ env:
   SILVER_OPENSHIFT_TOKEN: ${{ secrets.C5839F_OPENSHIFT_GITHUB_ACTIONS_SA_TOKEN }}
   SILVER_DEFAULT_NAMESPACE: c5839f-tools
   SILVER_TEST_NAMESPACE: c5839f-test
-  SILVER_IMAGE_REGISTRY: image-registry.apps.silver.devops.gov.bc.ca/c5839f-tools
+  SILVER_IMAGE_REGISTRY: image-registry.apps.silver.devops.gov.bc.ca
   SILVER_IMAGE_REGISTRY_USER: ${{ secrets.C5839F_OPENSHIFT_GITHUB_ACTIONS_SA_USER }}
   IMAGE_NAME: rtrans-esb
 
