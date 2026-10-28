@@ -1,10 +1,11 @@
+
 #!/bin/bash
 # Manual feature build + deploy for rtrans-esb
 #
 # Three modes:
 #   build:  Maven + podman build (local only, nothing pushed)
 #   push:   Push local image to a cluster's tools namespace
-#   deploy: Tag image from tools -> target namespace, update deployment
+#   deploy: Tag image from tools -> target namespace (fixed-tag deployment)
 #
 # Usage:
 #   ./rtrans-feature-deploy.sh build <image-tag>
@@ -65,15 +66,15 @@ resolve_cluster() {
   esac
 }
 
-# Returns: namespace tools-namespace imagestream deployment expected-server
+# Returns: namespace tools-namespace imagestream env-tag expected-server
 resolve_env() {
   case "$1" in
-    silver-dev)  echo "c5839f-dev c5839f-tools rtrans-esb-dev rtrans-esb-dev https://api.silver.devops.gov.bc.ca:6443" ;;
-    silver-test) echo "c5839f-test c5839f-tools rtrans-esb-test rtrans-esb-test https://api.silver.devops.gov.bc.ca:6443" ;;
-    silver-sbx)  echo "c5839f-test c5839f-tools rtrans-esb-sbx rtrans-esb-sbx https://api.silver.devops.gov.bc.ca:6443" ;;
-    silver-prod) echo "c5839f-prod c5839f-tools rtrans-esb rtrans-esb https://api.silver.devops.gov.bc.ca:6443" ;;
-    gold-prod)   echo "c8d6f2-prod c8d6f2-tools rtrans-esb rtrans-esb https://api.gold.devops.gov.bc.ca:6443" ;;
-    gold-dr)     echo "c8d6f2-prod c8d6f2-tools rtrans-esb rtrans-esb https://api.golddr.devops.gov.bc.ca:6443" ;;
+    silver-dev)  echo "c5839f-dev c5839f-tools rtrans-esb-dev dev https://api.silver.devops.gov.bc.ca:6443" ;;
+    silver-test) echo "c5839f-test c5839f-tools rtrans-esb-test test https://api.silver.devops.gov.bc.ca:6443" ;;
+    silver-sbx)  echo "c5839f-test c5839f-tools rtrans-esb-sbx sbx https://api.silver.devops.gov.bc.ca:6443" ;;
+    silver-prod) echo "c5839f-prod c5839f-tools rtrans-esb prod https://api.silver.devops.gov.bc.ca:6443" ;;
+    gold-prod)   echo "c8d6f2-prod c8d6f2-tools rtrans-esb prod https://api.gold.devops.gov.bc.ca:6443" ;;
+    gold-dr)     echo "c8d6f2-prod c8d6f2-tools rtrans-esb prod https://api.golddr.devops.gov.bc.ca:6443" ;;
     *)
       echo "Unknown environment: $1" >&2
       echo "Valid: silver-dev, silver-test, silver-sbx, silver-prod, gold-prod, gold-dr" >&2
@@ -165,6 +166,7 @@ if [ "${MODE}" = "push" ]; then
     silver)
       echo "  $0 deploy silver-dev ${FULL_TAG}"
       echo "  $0 deploy silver-test ${FULL_TAG}"
+      echo "  $0 deploy silver-sbx ${FULL_TAG}"
       echo "  $0 deploy silver-prod ${FULL_TAG}"
       ;;
     gold)
@@ -178,7 +180,7 @@ if [ "${MODE}" = "push" ]; then
 fi
 
 # =============================================================================
-# DEPLOY — Tag from tools -> target namespace, update deployment
+# DEPLOY — Tag from tools -> target namespace (fixed-tag deployment)
 # =============================================================================
 if [ "${MODE}" = "deploy" ]; then
   ENV="${2:?Usage: $0 deploy <environment> <full-image-tag>}"
@@ -188,21 +190,19 @@ if [ "${MODE}" = "deploy" ]; then
   TARGET_NS=$(echo "${RESOLVED}" | awk '{print $1}')
   TOOLS_NS=$(echo "${RESOLVED}" | awk '{print $2}')
   TARGET_IS=$(echo "${RESOLVED}" | awk '{print $3}')
-  TARGET_DEPLOY=$(echo "${RESOLVED}" | awk '{print $4}')
+  ENV_TAG=$(echo "${RESOLVED}" | awk '{print $4}')
   EXPECTED_SERVER=$(echo "${RESOLVED}" | awk '{print $5}')
 
   verify_cluster "${EXPECTED_SERVER}"
 
-  echo "=== DEPLOY: ${FULL_TAG} -> ${ENV} ==="
+  echo "=== DEPLOY: ${FULL_TAG} -> ${ENV} (${TARGET_IS}:${ENV_TAG}) ==="
 
-  echo "oc tag ${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG} ${TARGET_NS}/${TARGET_IS}:${FULL_TAG}"
-  oc tag "${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}" "${TARGET_NS}/${TARGET_IS}:${FULL_TAG}"
-
-  echo "oc set image deployment/${TARGET_DEPLOY} rtrans-esb=${INTERNAL_REGISTRY}/${TARGET_NS}/${TARGET_IS}:${FULL_TAG} -n ${TARGET_NS}"
-  oc set image "deployment/${TARGET_DEPLOY}" rtrans-esb="${INTERNAL_REGISTRY}/${TARGET_NS}/${TARGET_IS}:${FULL_TAG}" -n "${TARGET_NS}"
+  echo "oc tag ${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG} ${TARGET_NS}/${TARGET_IS}:${ENV_TAG}"
+  oc tag "${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}" "${TARGET_NS}/${TARGET_IS}:${ENV_TAG}"
+  oc set image "deployment/${TARGET_IS}" rtrans-esb="${INTERNAL_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}" -n "${TARGET_NS}"
 
   echo ""
-  echo "=== Deploy complete: ${FULL_TAG} -> ${ENV} ==="
+  echo "=== Deploy complete: ${FULL_TAG} -> ${TARGET_NS}/${TARGET_IS}:${ENV_TAG} ==="
   exit 0
 fi
 
