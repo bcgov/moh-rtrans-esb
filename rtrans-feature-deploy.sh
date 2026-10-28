@@ -1,33 +1,48 @@
 #!/bin/bash
 # Manual feature build + deploy for rtrans-esb
-# Usage:
-#   Build & deploy: ./rtrans-feature-deploy.sh <environment> <image-tag>
-#   Promote:        ./rtrans-feature-deploy.sh promote <source-env> <target-env> <image-tag>
 #
+# Three modes:
+#   build:  Maven + podman build (local only, nothing pushed)
+#   push:   Push local image to a cluster's tools namespace
+#   deploy: Tag image from tools -> target namespace, update deployment
+#
+# Usage:
+#   ./rtrans-feature-deploy.sh build <image-tag>
+#   ./rtrans-feature-deploy.sh push <cluster> <image-tag>
+#   ./rtrans-feature-deploy.sh deploy <environment> <full-image-tag>
+#
+#   Clusters: silver, gold, gold-dr
 #   Environments: silver-dev, silver-test, silver-sbx, silver-prod, gold-prod, gold-dr
 #   Image tag: descriptive name (e.g. java_11_upgrade)
-#
-#   The registry tag is: <image-tag>-<SHORT_SHA>
-#   e.g. java_11_upgrade-a1b2c3d4e5f6
+#   Full image tag: <image-tag>-<SHORT_SHA> (output by build mode)
 #
 # Examples:
-#   ./rtrans-feature-deploy.sh silver-dev java_11_upgrade
-#   ./rtrans-feature-deploy.sh promote silver-dev silver-test java_11_upgrade-a1b2c3d4e5f6
-#   ./rtrans-feature-deploy.sh promote silver-test silver-sbx java_11_upgrade-a1b2c3d4e5f6
-#   ./rtrans-feature-deploy.sh promote silver-test silver-prod java_11_upgrade-a1b2c3d4e5f6
+#   # 1. Build locally
+#   ./rtrans-feature-deploy.sh build java_11_upgrade
+#   # Output: === Registry tag: java_11_upgrade-a1b2c3d4e5f6 ===
 #
-#   ./rtrans-feature-deploy.sh gold-prod java_11_upgrade
-#   ./rtrans-feature-deploy.sh gold-dr   java_11_upgrade-a1b2c3d4e5f6
+#   # 2. Push to Silver tools (pre-stage)
+#   ./rtrans-feature-deploy.sh push silver java_11_upgrade-a1b2c3d4e5f6
 #
-# Notes:
-#   - Build mode appends SHORT_SHA to your tag automatically
-#   - Promote mode requires the full composite tag (with SHA)
-#   - gold-prod builds, pushes and deploys to Gold, then prompts to switch to Gold DR
-#   - gold-dr is a promote-only target (no build, just tag + deploy on Gold DR cluster)
-#   - You cannot be logged into Gold and Gold DR simultaneously
+#   # 3. Deploy to Silver dev
+#   ./rtrans-feature-deploy.sh deploy silver-dev java_11_upgrade-a1b2c3d4e5f6
+#
+#   # 4. Promote through Silver environments
+#   ./rtrans-feature-deploy.sh deploy silver-test java_11_upgrade-a1b2c3d4e5f6
+#   ./rtrans-feature-deploy.sh deploy silver-prod java_11_upgrade-a1b2c3d4e5f6
+#
+#   # 5. Push to Gold tools (pre-stage before change window)
+#   ./rtrans-feature-deploy.sh push gold java_11_upgrade-a1b2c3d4e5f6
+#
+#   # 6. Change window — deploy to Gold prod
+#   ./rtrans-feature-deploy.sh deploy gold-prod java_11_upgrade-a1b2c3d4e5f6
+#
+#   # 7. Push to Gold DR tools, then deploy
+#   ./rtrans-feature-deploy.sh push gold-dr java_11_upgrade-a1b2c3d4e5f6
+#   ./rtrans-feature-deploy.sh deploy gold-dr java_11_upgrade-a1b2c3d4e5f6
 #
 # Prerequisites: podman, oc, mvn, git (WSL2)
-# Must be logged into the target OpenShift cluster before running.
+# Must be logged into the correct OpenShift cluster before running push or deploy.
 set -eu
 
 IMAGE_NAME="rtrans-esb"
@@ -36,15 +51,29 @@ GOLDDR_REGISTRY="image-registry.apps.golddr.devops.gov.bc.ca"
 SILVER_REGISTRY="image-registry.apps.silver.devops.gov.bc.ca"
 INTERNAL_REGISTRY="image-registry.openshift-image-registry.svc:5000"
 
-# Returns: namespace tools-namespace imagestream deployment
+# Returns: registry tools-namespace expected-server
+resolve_cluster() {
+  case "$1" in
+    silver)  echo "${SILVER_REGISTRY} c5839f-tools https://api.silver.devops.gov.bc.ca:6443" ;;
+    gold)    echo "${GOLD_REGISTRY} c8d6f2-tools https://api.gold.devops.gov.bc.ca:6443" ;;
+    gold-dr) echo "${GOLDDR_REGISTRY} c8d6f2-tools https://api.golddr.devops.gov.bc.ca:6443" ;;
+    *)
+      echo "Unknown cluster: $1" >&2
+      echo "Valid: silver, gold, gold-dr" >&2
+      exit 1
+      ;;
+  esac
+}
+
+# Returns: namespace tools-namespace imagestream deployment expected-server
 resolve_env() {
   case "$1" in
-    silver-dev)  echo "c5839f-dev c5839f-tools rtrans-esb-dev rtrans-esb-dev" ;;
-    silver-test) echo "c5839f-test c5839f-tools rtrans-esb-test rtrans-esb-test" ;;
-    silver-sbx)  echo "c5839f-test c5839f-tools rtrans-esb-sbx rtrans-esb-sbx" ;;
-    silver-prod) echo "c5839f-prod c5839f-tools rtrans-esb rtrans-esb" ;;
-    gold-prod)   echo "c8d6f2-prod c8d6f2-tools rtrans-esb rtrans-esb" ;;
-    gold-dr)     echo "c8d6f2-prod c8d6f2-tools rtrans-esb rtrans-esb" ;;
+    silver-dev)  echo "c5839f-dev c5839f-tools rtrans-esb-dev rtrans-esb-dev https://api.silver.devops.gov.bc.ca:6443" ;;
+    silver-test) echo "c5839f-test c5839f-tools rtrans-esb-test rtrans-esb-test https://api.silver.devops.gov.bc.ca:6443" ;;
+    silver-sbx)  echo "c5839f-test c5839f-tools rtrans-esb-sbx rtrans-esb-sbx https://api.silver.devops.gov.bc.ca:6443" ;;
+    silver-prod) echo "c5839f-prod c5839f-tools rtrans-esb rtrans-esb https://api.silver.devops.gov.bc.ca:6443" ;;
+    gold-prod)   echo "c8d6f2-prod c8d6f2-tools rtrans-esb rtrans-esb https://api.gold.devops.gov.bc.ca:6443" ;;
+    gold-dr)     echo "c8d6f2-prod c8d6f2-tools rtrans-esb rtrans-esb https://api.golddr.devops.gov.bc.ca:6443" ;;
     *)
       echo "Unknown environment: $1" >&2
       echo "Valid: silver-dev, silver-test, silver-sbx, silver-prod, gold-prod, gold-dr" >&2
@@ -53,122 +82,136 @@ resolve_env() {
   esac
 }
 
-# --- Promote mode ---
-if [ "${1:-}" = "promote" ]; then
-  SOURCE_ENV="${2:?Usage: $0 promote <source-env> <target-env> <full-image-tag>}"
-  TARGET_ENV="${3:?Usage: $0 promote <source-env> <target-env> <full-image-tag>}"
-  FULL_TAG="${4:?Usage: $0 promote <source-env> <target-env> <full-image-tag>}"
+# Verify the user is logged into the expected cluster
+verify_cluster() {
+  local expected_server="$1"
+  local current_server
+  current_server=$(oc whoami --show-server 2>/dev/null) || {
+    echo "ERROR: Not logged in to OpenShift." >&2
+    echo "Run: oc login --token=<token> --server=${expected_server}" >&2
+    echo "Get your token at: https://oauth-openshift.$(echo "${expected_server}" | sed 's|https://api\.||;s|:6443||')/oauth/token/request" >&2
+    exit 1
+  }
+  if [ "${current_server}" != "${expected_server}" ]; then
+    echo "ERROR: Logged into ${current_server} but expected ${expected_server}" >&2
+    echo "Run: oc login --token=<token> --server=${expected_server}" >&2
+    exit 1
+  fi
+  echo "Verified: logged into ${current_server} as $(oc whoami)"
+}
 
-  SRC=$(resolve_env "${SOURCE_ENV}")
-  SRC_NS=$(echo "${SRC}" | awk '{print $1}')
-  SRC_IS=$(echo "${SRC}" | awk '{print $3}')
+MODE="${1:?Usage: $0 <build|push|deploy> ...}"
 
-  TGT=$(resolve_env "${TARGET_ENV}")
-  TGT_NS=$(echo "${TGT}" | awk '{print $1}')
-  TGT_IS=$(echo "${TGT}" | awk '{print $3}')
-  TGT_DEPLOY=$(echo "${TGT}" | awk '{print $4}')
+# =============================================================================
+# BUILD — Maven + podman build, local only
+# =============================================================================
+if [ "${MODE}" = "build" ]; then
+  IMAGE_TAG="${2:?Usage: $0 build <image-tag>}"
 
-  oc whoami || { echo "Not logged in to OpenShift."; exit 1; }
+  BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
+  SHORT_SHA=$(git rev-parse --short=12 HEAD)
+  FULL_TAG="${IMAGE_TAG}-${SHORT_SHA}"
 
-  echo "=== Promoting ${FULL_TAG}: ${SOURCE_ENV} -> ${TARGET_ENV} ==="
+  echo "=== BUILD ==="
+  echo "=== Branch: ${BRANCH_NAME} | Tag: ${IMAGE_TAG} | SHA: ${SHORT_SHA} ==="
+  echo "=== Registry tag: ${FULL_TAG} ==="
 
-  echo "oc tag ${SRC_NS}/${SRC_IS}:${FULL_TAG} ${TGT_NS}/${TGT_IS}:${FULL_TAG}"
-  oc tag ${SRC_NS}/${SRC_IS}:${FULL_TAG} ${TGT_NS}/${TGT_IS}:${FULL_TAG}
+  # Maven build
+  cd rtrans-esb
+  mvn install -Dimpl-version="${IMAGE_TAG}" -Dgit-commit="${SHORT_SHA}"
+  cd ..
 
-  echo "oc set image \"deployment/${TGT_DEPLOY}\" rtrans-esb=\"${INTERNAL_REGISTRY}/${TGT_NS}/${TGT_IS}:${FULL_TAG}\" -n \"${TGT_NS}\""
-  oc set image "deployment/${TGT_DEPLOY}" rtrans-esb="${INTERNAL_REGISTRY}/${TGT_NS}/${TGT_IS}:${FULL_TAG}" -n "${TGT_NS}"
+  # Podman build (local image stays 'latest' to avoid accumulation)
+  podman build -t "${IMAGE_NAME}:latest" -f rtrans-esb/Dockerfile rtrans-esb/
 
+  echo ""
+  echo "=== Build complete ==="
+  echo "=== Local image: ${IMAGE_NAME}:latest ==="
+  echo "=== Registry tag: ${FULL_TAG} ==="
+  echo ""
+  echo "Next steps:"
+  echo "  $0 push silver ${FULL_TAG}"
+  echo "  $0 push gold ${FULL_TAG}"
+  echo "  $0 push gold-dr ${FULL_TAG}"
   exit 0
 fi
 
-# --- Build & deploy mode ---
-ENV="${1:?Usage: $0 <environment> <image-tag>}"
-IMAGE_TAG="${2:?Usage: $0 <environment> <image-tag>}"
+# =============================================================================
+# PUSH — Push local image to a cluster's tools namespace
+# =============================================================================
+if [ "${MODE}" = "push" ]; then
+  CLUSTER="${2:?Usage: $0 push <silver|gold|gold-dr> <full-image-tag>}"
+  FULL_TAG="${3:?Usage: $0 push <silver|gold|gold-dr> <full-image-tag>}"
 
-BRANCH_NAME=$(git rev-parse --abbrev-ref HEAD)
-SHORT_SHA=$(git rev-parse --short=12 HEAD)
-FULL_TAG="${IMAGE_TAG}-${SHORT_SHA}"
+  RESOLVED=$(resolve_cluster "${CLUSTER}")
+  REGISTRY=$(echo "${RESOLVED}" | awk '{print $1}')
+  TOOLS_NS=$(echo "${RESOLVED}" | awk '{print $2}')
+  EXPECTED_SERVER=$(echo "${RESOLVED}" | awk '{print $3}')
 
-echo "=== Branch: ${BRANCH_NAME} | Tag: ${IMAGE_TAG} | SHA: ${SHORT_SHA} ==="
-echo "=== Registry tag: ${FULL_TAG} ==="
+  verify_cluster "${EXPECTED_SERVER}"
 
-# 1. Maven build
-cd rtrans-esb
-mvn install -Dimpl-version="${IMAGE_TAG}" -Dgit-commit="${SHORT_SHA}"
-cd ..
+  echo "=== PUSH: ${FULL_TAG} -> ${CLUSTER} (${TOOLS_NS}) ==="
 
-# 2. Podman build (local image stays 'latest' to avoid accumulation)
-podman build -t "${IMAGE_NAME}:latest" -f rtrans-esb/Dockerfile rtrans-esb/
+  oc whoami -t | podman login "${REGISTRY}" -u "$(oc whoami)" --password-stdin
 
-RESOLVED=$(resolve_env "${ENV}")
-TARGET_NS=$(echo "${RESOLVED}" | awk '{print $1}')
-TOOLS_NS=$(echo "${RESOLVED}" | awk '{print $2}')
-TARGET_IS=$(echo "${RESOLVED}" | awk '{print $3}')
-TARGET_DEPLOY=$(echo "${RESOLVED}" | awk '{print $4}')
+  podman tag "${IMAGE_NAME}:latest" "${REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}"
+  podman push "${REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}"
 
-case "${ENV}" in
-  silver-dev|silver-test|silver-sbx|silver-prod)
-    echo "=== Deploying to ${ENV} ==="
-    oc whoami || { echo "Not logged in. Run: oc login --server=https://api.silver.devops.gov.bc.ca:6443"; exit 1; }
-    oc whoami -t | podman login "${SILVER_REGISTRY}" -u "$(oc whoami)" --password-stdin
+  echo ""
+  echo "=== Push complete: ${FULL_TAG} in ${TOOLS_NS} ==="
+  echo ""
+  echo "Next steps:"
+  case "${CLUSTER}" in
+    silver)
+      echo "  $0 deploy silver-dev ${FULL_TAG}"
+      echo "  $0 deploy silver-test ${FULL_TAG}"
+      echo "  $0 deploy silver-prod ${FULL_TAG}"
+      ;;
+    gold)
+      echo "  $0 deploy gold-prod ${FULL_TAG}"
+      ;;
+    gold-dr)
+      echo "  $0 deploy gold-dr ${FULL_TAG}"
+      ;;
+  esac
+  exit 0
+fi
 
-    podman tag "${IMAGE_NAME}:latest" "${SILVER_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}"
-    podman push "${SILVER_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}"
+# =============================================================================
+# DEPLOY — Tag from tools -> target namespace, update deployment
+# =============================================================================
+if [ "${MODE}" = "deploy" ]; then
+  ENV="${2:?Usage: $0 deploy <environment> <full-image-tag>}"
+  FULL_TAG="${3:?Usage: $0 deploy <environment> <full-image-tag>}"
 
-    oc tag "${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}" "${TARGET_NS}/${TARGET_IS}:${FULL_TAG}"
-    oc set image "deployment/${TARGET_DEPLOY}" rtrans-esb="${INTERNAL_REGISTRY}/${TARGET_NS}/${TARGET_IS}:${FULL_TAG}" -n "${TARGET_NS}"
+  RESOLVED=$(resolve_env "${ENV}")
+  TARGET_NS=$(echo "${RESOLVED}" | awk '{print $1}')
+  TOOLS_NS=$(echo "${RESOLVED}" | awk '{print $2}')
+  TARGET_IS=$(echo "${RESOLVED}" | awk '{print $3}')
+  TARGET_DEPLOY=$(echo "${RESOLVED}" | awk '{print $4}')
+  EXPECTED_SERVER=$(echo "${RESOLVED}" | awk '{print $5}')
 
-    echo "=== ${ENV} done ==="
-    ;;
+  verify_cluster "${EXPECTED_SERVER}"
 
-  gold-prod)
-    echo "=== Deploying to Gold Prod ==="
-    oc whoami || { echo "Not logged in. Run: oc login --server=https://api.gold.devops.gov.bc.ca:6443"; exit 1; }
-    oc whoami -t | podman login "${GOLD_REGISTRY}" -u "$(oc whoami)" --password-stdin
+  echo "=== DEPLOY: ${FULL_TAG} -> ${ENV} ==="
 
-    podman tag "${IMAGE_NAME}:latest" "${GOLD_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}"
-    podman push "${GOLD_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}"
+  echo "oc tag ${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG} ${TARGET_NS}/${TARGET_IS}:${FULL_TAG}"
+  oc tag "${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}" "${TARGET_NS}/${TARGET_IS}:${FULL_TAG}"
 
-    oc tag "${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}" "${TARGET_NS}/${TARGET_IS}:${FULL_TAG}"
-    oc set image "deployment/${TARGET_DEPLOY}" rtrans-esb="${INTERNAL_REGISTRY}/${TARGET_NS}/${TARGET_IS}:${FULL_TAG}" -n "${TARGET_NS}"
+  echo "oc set image deployment/${TARGET_DEPLOY} rtrans-esb=${INTERNAL_REGISTRY}/${TARGET_NS}/${TARGET_IS}:${FULL_TAG} -n ${TARGET_NS}"
+  oc set image "deployment/${TARGET_DEPLOY}" rtrans-esb="${INTERNAL_REGISTRY}/${TARGET_NS}/${TARGET_IS}:${FULL_TAG}" -n "${TARGET_NS}"
 
-    echo "=== Gold Prod done. Now switching to Gold DR ==="
-    printf "Press Enter to log in to Gold DR..."
-    read _
+  echo ""
+  echo "=== Deploy complete: ${FULL_TAG} -> ${ENV} ==="
+  exit 0
+fi
 
-    echo "Log in to Gold DR:"
-    echo "  1. Visit: https://oauth-openshift.apps.golddr.devops.gov.bc.ca/oauth/token/request"
-    echo "  2. Copy the 'oc login --token=...' command"
-    echo "  3. Paste it here and press Enter"
-    read -r OC_LOGIN_CMD
-    eval "${OC_LOGIN_CMD}"
-
-    oc whoami -t | podman login "${GOLDDR_REGISTRY}" -u "$(oc whoami)" --password-stdin
-
-    podman tag "${IMAGE_NAME}:latest" "${GOLDDR_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}"
-    podman push "${GOLDDR_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}"
-
-    oc tag "${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}" "${TARGET_NS}/${TARGET_IS}:${FULL_TAG}"
-    oc set image "deployment/${TARGET_DEPLOY}" rtrans-esb="${INTERNAL_REGISTRY}/${TARGET_NS}/${TARGET_IS}:${FULL_TAG}" -n "${TARGET_NS}"
-
-    echo "=== Gold DR done ==="
-    ;;
-
-  gold-dr)
-    echo "=== Deploying to Gold DR only ==="
-    echo "This pushes the local image to Gold DR and deploys. Use if Gold was already done."
-    oc whoami || { echo "Not logged in. Run: oc login --server=https://api.golddr.devops.gov.bc.ca:6443"; exit 1; }
-    oc whoami -t | podman login "${GOLDDR_REGISTRY}" -u "$(oc whoami)" --password-stdin
-
-    podman tag "${IMAGE_NAME}:latest" "${GOLDDR_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}"
-    podman push "${GOLDDR_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}"
-
-    oc tag "${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}" "${TARGET_NS}/${TARGET_IS}:${FULL_TAG}"
-    oc set image "deployment/${TARGET_DEPLOY}" rtrans-esb="${INTERNAL_REGISTRY}/${TARGET_NS}/${TARGET_IS}:${FULL_TAG}" -n "${TARGET_NS}"
-
-    echo "=== Gold DR done ==="
-    ;;
-esac
-
-echo ""
-echo "=== Deploy complete: ${FULL_TAG} ==="
+# =============================================================================
+# Unknown mode
+# =============================================================================
+echo "Unknown mode: ${MODE}" >&2
+echo "Usage:" >&2
+echo "  $0 build <image-tag>" >&2
+echo "  $0 push <silver|gold|gold-dr> <full-image-tag>" >&2
+echo "  $0 deploy <environment> <full-image-tag>" >&2
+exit 1

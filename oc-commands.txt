@@ -27,8 +27,26 @@ oc set image deployment/rtrans-esb rtrans-esb=image-registry.openshift-image-reg
 # if they did:
 oc set image deployment/rtrans-esb-dev  rtrans-esb=image-registry.openshift-image-registry.svc:5000/c5839f-dev/rtrans-esb-dev:java_11_upgrade   -n c5839f-dev
 oc set image deployment/rtrans-esb-test rtrans-esb=image-registry.openshift-image-registry.svc:5000/c5839f-test/rtrans-esb-test:java_11_upgrade -n c5839f-test
+
+# sandbox
+oc set image deployment/rtrans-esb-sbx rtrans-esb=image-registry.openshift-image-registry.svc:5000/c5839f-sbx/rtrans-esb-sbx:java_11_upgrade -n c5839f-sbx
+
+# prod
 oc set image deployment/rtrans-esb      rtrans-esb=image-registry.openshift-image-registry.svc:5000/c5839f-prod/rtrans-esb:java_11_upgrade      -n c5839f-prod
 
 # Monday plan (part II)
 Get access to tenant-gitops-c5839f — this is the real fix. Update the kustomization overlays so ArgoCD syncs your image
 Get ArgoCD access — so you can see sync status and pause it when needed
+
+
+-----------------------------------------------
+Monday
+
+# 1. Log in to Gold (get token from web console)
+oc login --token=sha256~xxx --server=https://api.gold.devops.gov.bc.ca:6443
+
+# 2. Deploy to Gold prod
+./rtrans-feature-deploy.sh gold-prod java_11_upgrade
+
+# 3. Log in to Gold DR (get token from web console)
+oc login --token=sha256~yyy --server=https://api.golddr.devops.gov.bc.ca:6443
