@@ -195,9 +195,12 @@ if [ "${MODE}" = "deploy" ]; then
 
   verify_cluster "${EXPECTED_SERVER}"
 
+  # make sure we have permission to deploy the image from tools to target namespace
+  oc policy add-role-to-user system:image-puller system:serviceaccount:${TARGET_NS}:default -n "${TOOLS_NS}"
+
   echo "=== DEPLOY: ${FULL_TAG} -> ${ENV} (${TARGET_IS}:${ENV_TAG}) ==="
 
-  echo "oc tag ${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG} ${TARGET_NS}/${TARGET_IS}:${ENV_TAG}"
+  # echo "oc tag ${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG} ${TARGET_NS}/${TARGET_IS}:${ENV_TAG}"
   oc tag "${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}" "${TARGET_NS}/${TARGET_IS}:${ENV_TAG}"
   oc set image "deployment/${TARGET_IS}" rtrans-esb="${INTERNAL_REGISTRY}/${TOOLS_NS}/${IMAGE_NAME}:${FULL_TAG}" -n "${TARGET_NS}"
 
