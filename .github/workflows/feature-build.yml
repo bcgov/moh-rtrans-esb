@@ -37,7 +37,7 @@ env:
   SILVER_OPENSHIFT_TOKEN: ${{ secrets.C5839F_OPENSHIFT_GITHUB_ACTIONS_SA_TOKEN }}
   SILVER_DEFAULT_NAMESPACE: c5839f-tools
   SILVER_TEST_NAMESPACE: c5839f-test
-  SILVER_IMAGE_REGISTRY: image-registry.apps.silver.devops.gov.bc.ca/c5839f-tools
+  SILVER_IMAGE_REGISTRY: image-registry.apps.silver.devops.gov.bc.ca
   SILVER_IMAGE_REGISTRY_USER: ${{ secrets.C5839F_OPENSHIFT_GITHUB_ACTIONS_SA_USER }}
   IMAGE_NAME: rtrans-esb
 
@@ -96,7 +96,7 @@ jobs:
       - name: Push image to Gold registry
         id: push-image-gold
         if: inputs.DEPLOY_TARGET == 'Gold'
-        uses: redhat-actions/push-to-registry@v2
+        uses: redhat-actions/push-to-registry@v3
         with:
           image: ${{ steps.build-docker.outputs.image }}
           tags: ${{ steps.build-docker.outputs.tags }}
@@ -106,7 +106,7 @@ jobs:
 
       - name: Push image to Gold DR registry
         if: inputs.DEPLOY_TARGET == 'Gold'
-        uses: redhat-actions/push-to-registry@v2
+        uses: redhat-actions/push-to-registry@v3
         with:
           image: ${{ steps.build-docker.outputs.image }}
           tags: ${{ steps.build-docker.outputs.tags }}
@@ -117,11 +117,11 @@ jobs:
       - name: Push image to Silver registry
         id: push-image-silver
         if: inputs.DEPLOY_TARGET == 'Silver Test'
-        uses: redhat-actions/push-to-registry@v2
+        uses: redhat-actions/push-to-registry@v3
         with:
           image: ${{ steps.build-docker.outputs.image }}
           tags: ${{ steps.build-docker.outputs.tags }}
-          registry: ${{ env.SILVER_IMAGE_REGISTRY }}
+          registry: ${{ env.SILVER_IMAGE_REGISTRY }}/${{ env.SILVER_DEFAULT_NAMESPACE }}
           username: ${{ env.SILVER_IMAGE_REGISTRY_USER }}
           password: ${{ env.SILVER_OPENSHIFT_TOKEN }}
 
